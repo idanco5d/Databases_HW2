@@ -43,6 +43,18 @@ def create_tables() -> None:
         queries = [create_cust_table, create_order_table, create_dish_table]
         for query in queries:
             connection.execute(query)
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
     except Exception as e:
         print(e)
     finally:
@@ -56,7 +68,19 @@ def clear_tables() -> None:
 
 
 def drop_tables() -> None:
-    # TODO: implement
+    connection = None
+    try:
+        connection = Connector.DBConnector()
+        drop_customer = "drop table customer;"
+        drop_order = "drop table order;"
+        drop_dish = "drop table dish;"
+        queries = [drop_customer, drop_order, drop_dish]
+        for query in queries:
+            connection.execute(query)
+    except Exception as e:
+        print(e)
+    finally:
+        connection.close()
     pass
 
 
@@ -66,7 +90,7 @@ def add_customer(customer: Customer) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = ("insert into customer values (" + customer.get_cust_id()._str_() + ", '" + customer.get_full_name()
+        query = ("insert into customer values (" + customer.get_cust_id().__str__() + ", '" + customer.get_full_name()
                  + "', '" + customer.get_phone() + "', '" + customer.get_address() + "');")
         connection.execute(query)
 
@@ -97,7 +121,7 @@ def get_customer(customer_id: int) -> Customer:
     customer = None
     try:
         connection = Connector.DBConnector()
-        query = "select * from customer where cust_id = " + customer_id._str_() + ";"
+        query = "select * from customer where cust_id = " + customer_id.__str__() + ";"
         _, result = connection.execute(query)
         if not result:
             customer = BadCustomer()
@@ -117,8 +141,8 @@ def delete_customer(customer_id: int) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = "DELETE FROM customer where cust_id= " + customer_id._str_() + ";"
-        conn.execute(query)
+        query = "DELETE FROM customer where cust_id= " + customer_id.__str__() + ";"
+        connection.execute(query)
 
     except Exception as e:
         print(e)
@@ -134,7 +158,7 @@ def add_order(order: Order) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = ("insert into order values (" + order.get_order_id()._str_() + ", " + order.get_datetime()._str_()+ ");")
+        query = ("insert into order values (" + order.get_order_id().__str__() + ", " + order.get_datetime().__str__() + ");")
         connection.execute(query)
 
     except DatabaseException.NOT_NULL_VIOLATION as e:
@@ -163,7 +187,7 @@ def get_order(order_id: int) -> Order:
     order = None
     try:
         connection = Connector.DBConnector()
-        query = "select * from order where order_id = " + order_id._str_() + ";"
+        query = "select * from order where order_id = " + order_id.__str__() + ";"
         _, result = connection.execute(query)
         if not result:
             order = BadOrder()
@@ -183,8 +207,8 @@ def delete_order(order_id: int) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = "DELETE FROM order where order_id= " + order_id._str_() + ";"
-        conn.execute(query)
+        query = "DELETE FROM order where order_id= " + order_id.__str__() + ";"
+        connection.execute(query)
 
     except Exception as e:
         print(e)
