@@ -66,7 +66,7 @@ def add_customer(customer: Customer) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = ("insert into customer values (" + customer.get_cust_id().__str__() + ", '" + customer.get_full_name()
+        query = ("insert into customer values (" + customer.get_cust_id()._str_() + ", '" + customer.get_full_name()
                  + "', '" + customer.get_phone() + "', '" + customer.get_address() + "');")
         connection.execute(query)
 
@@ -97,7 +97,7 @@ def get_customer(customer_id: int) -> Customer:
     customer = None
     try:
         connection = Connector.DBConnector()
-        query = "select * from customer where cust_id = " + customer_id.__str__() + ";"
+        query = "select * from customer where cust_id = " + customer_id._str_() + ";"
         _, result = connection.execute(query)
         if not result:
             customer = BadCustomer()
@@ -106,30 +106,94 @@ def get_customer(customer_id: int) -> Customer:
             customer = Customer(db_result['cust_id'], db_result['full_name'], db_result['phone'], db_result['address'])
     except Exception as e:
         print(e)
+        return BadCustomer()
     finally:
         connection.close()
-    return customer
+        return customer
     pass
 
 
 def delete_customer(customer_id: int) -> ReturnValue:
-    # TODO: implement
+    connection = None
+    try:
+        connection = Connector.DBConnector()
+        query = "DELETE FROM customer where cust_id= " + customer_id._str_() + ";"
+        conn.execute(query)
+
+    except Exception as e:
+        print(e)
+        return ReturnValue.ERROR
+    #whatif customer doesn't exist
+    finally:
+        connection.close()
+        return ReturnValue.OK
     pass
 
 
 def add_order(order: Order) -> ReturnValue:
-    # TODO: implement
+    connection = None
+    try:
+        connection = Connector.DBConnector()
+        query = ("insert into order values (" + order.get_order_id()._str_() + ", " + order.get_datetime()._str_()+ ");")
+        connection.execute(query)
+
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except Exception as e:
+        print(e)
+        return ReturnValue.ERROR
+    finally:
+        connection.close()
+    return ReturnValue.OK
     pass
 
 
 def get_order(order_id: int) -> Order:
-    # TODO: implement
+    connection = None
+    order = None
+    try:
+        connection = Connector.DBConnector()
+        query = "select * from order where order_id = " + order_id._str_() + ";"
+        _, result = connection.execute(query)
+        if not result:
+            order = BadOrder()
+        else:
+            db_result = result[0]
+            order = Order(db_result['order_id'], db_result['date'])
+    except Exception as e:
+        print(e)
+        return BadOrder()
+    finally:
+        connection.close()
+        return order
     pass
 
 
 def delete_order(order_id: int) -> ReturnValue:
-    # TODO: implement
-    pass
+    connection = None
+    try:
+        connection = Connector.DBConnector()
+        query = "DELETE FROM order where order_id= " + order_id._str_() + ";"
+        conn.execute(query)
+
+    except Exception as e:
+        print(e)
+        return ReturnValue.ERROR
+    # whatif order doesn't exist
+    finally:
+        connection.close()
+        return ReturnValue.OK
+        pass
 
 
 def add_dish(dish: Dish) -> ReturnValue:
@@ -186,12 +250,9 @@ def customer_dislike_dish(cust_id: int, dish_id: int) -> ReturnValue:
     # TODO: implement
     pass
 
-
 def get_all_customer_likes(cust_id: int) -> List[Dish]:
     # TODO: implement
     pass
-
-
 # ---------------------------------- BASIC API: ----------------------------------
 
 # Basic API
