@@ -1,8 +1,10 @@
+import datetime
 import unittest
 import Solution as Solution
 from Utility.ReturnValue import ReturnValue
 from Tests.AbstractTest import AbstractTest
 from Business.Customer import Customer, BadCustomer
+from Business.Order import Order
 
 '''
     Simple test, create one of your own
@@ -16,6 +18,12 @@ class Test(AbstractTest):
         self.assertEqual(ReturnValue.OK, Solution.add_customer(c1), 'regular customer')
         c2 = Customer(2, None, "0502220000", "Haifa")
         self.assertEqual(ReturnValue.BAD_PARAMS, Solution.add_customer(c2), 'invalid name')
+
+    def test_order(self) -> None:
+        o1 = Order(1, datetime.datetime.now())
+        self.assertEqual(ReturnValue.OK, Solution.add_order(o1))
+
+
 
 
 # *** DO NOT RUN EACH TEST MANUALLY ***

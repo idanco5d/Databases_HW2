@@ -90,6 +90,8 @@ def add_customer(customer: Customer) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
+        if customer.get_cust_id() is None or customer.get_full_name() is None or customer.get_phone() is None or customer.get_address() is None:
+            return ReturnValue.BAD_PARAMS
         query = ("insert into customer values (" + customer.get_cust_id().__str__() + ", '" + customer.get_full_name()
                  + "', '" + customer.get_phone() + "', '" + customer.get_address() + "');")
         connection.execute(query)
@@ -158,7 +160,7 @@ def add_order(order: Order) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = ("insert into order values (" + order.get_order_id().__str__() + ", " + order.get_datetime().__str__() + ");")
+        query = ("insert into order values (" + order.get_order_id().__str__() + ", '" + order.get_datetime().year.__str__() + "-" + order.get_datetime().month.__str__() + "-"+ order.get_datetime().day.__str__() + "');")
         connection.execute(query)
 
     except DatabaseException.NOT_NULL_VIOLATION as e:
