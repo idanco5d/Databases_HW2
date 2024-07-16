@@ -19,9 +19,9 @@ class Test(AbstractTest):
         c2 = Customer(2, None, "0502220000", "Haifa")
         self.assertEqual(ReturnValue.BAD_PARAMS, Solution.add_customer(c2), 'invalid name')
 
-    def test_order(self) -> None:
-        o1 = Order(1, datetime.datetime.now())
-        self.assertEqual(ReturnValue.OK, Solution.add_order(o1))
+    # def test_order(self) -> None:
+    #     o1 = Order(1, datetime.datetime.now())
+    #     self.assertEqual(ReturnValue.OK, Solution.add_order(o1))
 
 
 

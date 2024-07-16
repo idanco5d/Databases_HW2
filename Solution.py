@@ -40,7 +40,32 @@ def create_tables() -> None:
                              "is_active boolean,"
                              "primary key (dish_id),"
                              "unique (dish_id));")
-        queries = [create_cust_table, create_order_table, create_dish_table]
+        create_customer_orders_table = ("create table customer_orders "
+                                        "(cust_id integer,"
+                                        "order_id integer,"
+                                        "foreign key (cust_id) references customer(cust_id),"
+                                        "foreign key (order_id) references order(order_id),"
+                                        "primary key (order_id));")
+        create_dishes_in_order_table = ("create table dishes_in_order "
+                                        "(dish_id integer,"
+                                        "order_id integer,"
+                                        "foreign key (dish_id) references dish(dish_id),"
+                                        "foreign key (order_id) references order(order_id),"
+                                        "primary key (dish_id, order_id));")
+        create_likes_table = ("create table likes "
+                             "(cust_id integer,"
+                             "dish_id integer,"
+                             "foreign key (cust_id) references customer(cust_id),"
+                             "foreign key (dish_id) references dish(dish_id),"
+                             "primary key (dish_id, cust_id));")
+        queries = [
+            create_cust_table,
+            create_order_table,
+            create_dish_table,
+            create_customer_orders_table,
+            create_dishes_in_order_table,
+            create_likes_table
+        ]
         for query in queries:
             connection.execute(query)
     except DatabaseException.NOT_NULL_VIOLATION as e:
