@@ -268,17 +268,90 @@ def update_dish_active_status(dish_id: int, is_active: bool) -> ReturnValue:
 
 
 def customer_placed_order(customer_id: int, order_id: int) -> ReturnValue:
-    # TODO: implement
+    connection = None
+
+    try:
+        connection = Connector.DBConnector()
+        query1 = ("insert into customer_orders values (" + customer_id.__str__() + ", '" + order_id.__str__() + "');")
+        query2 = ("update order set date=current_date where order = (" + order_id.__str__() + ");")
+        queries = [query1, query2]
+        for query in queries:
+            connection.execute(query)
+
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.NOT_EXISTS
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except Exception as e:
+        print(e)
+        return ReturnValue.ERROR
+    finally:
+        connection.close()
     pass
 
 
 def get_customer_that_placed_order(order_id: int) -> Customer:
-    # TODO: implement
+    connection = None
+    customer = None
+    try:
+        connection = Connector.DBConnector()
+        query = "select cust_id from customer_orders where order_id = " + order_id.__str__() + ";"
+        _, result = connection.execute(query)
+        if not result:
+            customer = BadCustomer()
+        else:
+            customer = get_customer(result)
+    except Exception as e:
+        print(e)
+        return BadCustomer()
+    finally:
+        connection.close()
+        return customer
     pass
 
 
 def order_contains_dish(order_id: int, dish_id: int, amount: int) -> ReturnValue:
-    # TODO: implement
+    connection = None
+    try:
+        connection = Connector.DBConnector()
+        query1 = ("insert into dishes_in_order values (" + order_id.__str__() + ", '" + dish_id.__str__() + "');")
+        #query2 = ("update price set date=current_date where order = (" + order_id.__str__() + ");")
+        # add price in dishes_in_order
+        queries = [query1]
+        for query in queries:
+            connection.execute(query)
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.UNIQUE_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.CHECK_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.ConnectionInvalid as e:
+        print(e)
+        return ReturnValue.ERROR
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        print(e)
+        return ReturnValue.ERROR
+    except Exception as e:
+        print(e)
+        return ReturnValue.ERROR
+    finally:
+        connection.close()
+        return ReturnValue.OK
     pass
 
 
