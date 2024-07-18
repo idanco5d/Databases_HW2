@@ -52,6 +52,8 @@ def create_tables() -> None:
         create_dishes_in_order_table = ("create table dishes_in_order "
                                         "(dish_id integer,"
                                         "order_id integer,"
+                                        "amount integer check ( amount>0),"
+                                        "dish_price integer,"
                                         "foreign key (dish_id) references dish(dish_id),"
                                         "foreign key (order_id) references \"order\"(order_id),"
                                         "primary key (dish_id, order_id)); ")
@@ -245,12 +247,13 @@ def delete_order(order_id: int) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
         query = "DELETE FROM \"order\" where order_id= " + order_id.__str__() + ";"
-        connection.execute(query)
+        rows_effected, _ = connection.execute(query)
+        if rows_effected == 0:
+            return ReturnValue.NOT_EXISTS
 
-    except Exception as e:
+    except DatabaseException.ConnectionInvalid as e:
         print(e)
         return ReturnValue.ERROR
-    # whatif order doesn't exist
     finally:
         connection.close()
         return ReturnValue.OK
@@ -340,11 +343,8 @@ def customer_placed_order(customer_id: int, order_id: int) -> ReturnValue:
 
     try:
         connection = Connector.DBConnector()
-        query1 = ("insert into customer_orders values (" + customer_id.__str__() + ", '" + order_id.__str__() + "');")
-        query2 = ("update \"order\" set date=current_date where order = (" + order_id.__str__() + ");")
-        queries = [query1, query2]
-        for query in queries:
-            connection.execute(query)
+        query = ("insert into customer_orders values (" + customer_id.__str__() + ", '" + order_id.__str__() + "');")
+        connection.execute(query)
 
     except DatabaseException.FOREIGN_KEY_VIOLATION as e:
         print(e)
@@ -352,13 +352,7 @@ def customer_placed_order(customer_id: int, order_id: int) -> ReturnValue:
     except DatabaseException.UNIQUE_VIOLATION as e:
         print(e)
         return ReturnValue.ALREADY_EXISTS
-    except DatabaseException.CHECK_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
     except DatabaseException.ConnectionInvalid as e:
-        print(e)
-        return ReturnValue.ERROR
-    except DatabaseException.NOT_NULL_VIOLATION as e:
         print(e)
         return ReturnValue.ERROR
     except Exception as e:
@@ -366,6 +360,7 @@ def customer_placed_order(customer_id: int, order_id: int) -> ReturnValue:
         return ReturnValue.ERROR
     finally:
         connection.close()
+        return ReturnValue.OK
     pass
 
 
@@ -374,12 +369,14 @@ def get_customer_that_placed_order(order_id: int) -> Customer:
     customer = None
     try:
         connection = Connector.DBConnector()
-        query = "select cust_id from customer_orders where order_id = " + order_id.__str__() + ";"
+        query = "select c.* from customer_orders co" \
+                "join customer c on c.cust_id = co.cust_id " \
+                "where order_id = " + order_id.__str__() + ";"
         _, result = connection.execute(query)
         if not result:
             customer = BadCustomer()
         else:
-            customer = get_customer(result)
+            customer = Customer(result["cust_id"], result["full_name"], result["phone"], result["address"])
     except Exception as e:
         print(e)
         return BadCustomer()
@@ -393,25 +390,18 @@ def order_contains_dish(order_id: int, dish_id: int, amount: int) -> ReturnValue
     connection = None
     try:
         connection = Connector.DBConnector()
-        query1 = ("insert into dishes_in_order values (" + order_id.__str__() + ", '" + dish_id.__str__() + "');")
-        # query2 = ("update price set date=current_date where order = (" + order_id.__str__() + ");")
-        # add price in dishes_in_order
-        queries = [query1]
-        for query in queries:
-            connection.execute(query)
+        query = ("insert into dishes_in_order values (" + order_id.__str__() + ", " + dish_id.__str__() +", "+ amount.__str__() +",(select price from dish where dish_id=" +dish_id.__str__()+"));")
+        connection.execute(query)
     except DatabaseException.FOREIGN_KEY_VIOLATION as e:
         print(e)
-        return ReturnValue.ERROR
+        return ReturnValue.NOT_EXISTS
     except DatabaseException.UNIQUE_VIOLATION as e:
         print(e)
-        return ReturnValue.ERROR
+        return ReturnValue.ALREADY_EXISTS
     except DatabaseException.CHECK_VIOLATION as e:
         print(e)
-        return ReturnValue.ERROR
+        return ReturnValue.BAD_PARAMS
     except DatabaseException.ConnectionInvalid as e:
-        print(e)
-        return ReturnValue.ERROR
-    except DatabaseException.NOT_NULL_VIOLATION as e:
         print(e)
         return ReturnValue.ERROR
     except Exception as e:
@@ -428,10 +418,9 @@ def order_does_not_contain_dish(order_id: int, dish_id: int) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
         query = "DELETE FROM dishes_in_order where order_id= " + order_id.__str__() + " AND dish_id= " + dish_id.__str__() + ";"
-
-    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
-        print(e)
-        return ReturnValue.NOT_EXISTS
+        row_effected, _ =connection.execute(query)
+        if row_effected == 0:
+            return ReturnValue.NOT_EXISTS
     except Exception as e:
         print(e)
         return ReturnValue.ERROR
@@ -537,6 +526,7 @@ def get_most_expensive_anonymous_order() -> Order:
                  ") tbl "
                  "join \"order\" o on o.order_id = tbl.order_id;")
         _, result = connection.execute(query)
+        connection.close()
         return Order(result['order_id'], result['date'])
     except DatabaseException.ConnectionInvalid:
         return BadOrder()
