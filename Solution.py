@@ -53,7 +53,7 @@ def create_tables() -> None:
                                         "(dish_id integer,"
                                         "order_id integer,"
                                         "amount integer check ( amount>0),"
-                                        "dish_price integer,"
+                                        "dish_price decimal,"
                                         "foreign key (dish_id) references dish(dish_id),"
                                         "foreign key (order_id) references \"order\"(order_id),"
                                         "primary key (dish_id, order_id)); ")
@@ -129,19 +129,12 @@ def add_customer(customer: Customer) -> ReturnValue:
         query = ("insert into customer values (" + customer.get_cust_id().__str__() + ", '" + customer.get_full_name()
                  + "', '" + customer.get_phone() + "', '" + customer.get_address() + "');")
         connection.execute(query)
-
-    except DatabaseException.NOT_NULL_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
     except DatabaseException.CHECK_VIOLATION as e:
         print(e)
         return ReturnValue.BAD_PARAMS
     except DatabaseException.UNIQUE_VIOLATION as e:
         print(e)
         return ReturnValue.ALREADY_EXISTS
-    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
     except Exception as e:
         print(e)
         return ReturnValue.ERROR
@@ -178,12 +171,13 @@ def delete_customer(customer_id: int) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
         query = "DELETE FROM customer where cust_id= " + customer_id.__str__() + ";"
-        connection.execute(query)
+        rows_effected, _ = connection.execute(query)
+        if rows_effected == 0:
+            return ReturnValue.NOT_EXISTS
 
     except Exception as e:
         print(e)
         return ReturnValue.ERROR
-    # whatif customer doesn't exist
     finally:
         connection.close()
         return ReturnValue.OK
@@ -270,26 +264,18 @@ def add_dish(dish: Dish) -> ReturnValue:
                 "insert into dish values (" + dish.get_dish_id().__str__() + ", '" + dish.get_name() + "', " + dish.get_price().__str__() + ", " + dish.get_is_active().__str__() + ");"
         )
         connection.execute(query)
-
-    except DatabaseException.NOT_NULL_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
     except DatabaseException.CHECK_VIOLATION as e:
         print(e)
         return ReturnValue.BAD_PARAMS
     except DatabaseException.UNIQUE_VIOLATION as e:
         print(e)
         return ReturnValue.ALREADY_EXISTS
-    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
     except Exception as e:
         print(e)
         return ReturnValue.ERROR
     finally:
         connection.close()
     return ReturnValue.OK
-    pass
 
 
 def get_dish(dish_id: int) -> Dish:
@@ -318,10 +304,14 @@ def update_dish_price(dish_id: int, price: float) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
         query = "update dish set price = " + price.__str__() + " where dish_id = " + dish_id.__str__() + ";"
-        connection.execute(query)
+        rows_affected, _ = connection.execute(query)
+        if rows_affected == 0:
+            return ReturnValue.NOT_EXISTS
     except DatabaseException.CHECK_VIOLATION as e:
         connection.close()
         return ReturnValue.BAD_PARAMS
+    except Exception as e:
+        return ReturnValue.ERROR
     return ReturnValue.OK
     pass
 
@@ -331,10 +321,14 @@ def update_dish_active_status(dish_id: int, is_active: bool) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
         query = "update dish set is_active = " + is_active.__str__() + " where dish_id = " + dish_id.__str__() + ";"
-        connection.execute(query)
+        rows_affected, _ = connection.execute(query)
+        if rows_affected == 0:
+            return ReturnValue.NOT_EXISTS
     except DatabaseException.CHECK_VIOLATION as e:
         connection.close()
         return ReturnValue.BAD_PARAMS
+    except Exception as e:
+        return ReturnValue.ERROR
     return ReturnValue.OK
 
 
@@ -390,7 +384,7 @@ def order_contains_dish(order_id: int, dish_id: int, amount: int) -> ReturnValue
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = ("insert into dishes_in_order values (" + order_id.__str__() + ", " + dish_id.__str__() +", "+ amount.__str__() +",(select price from dish where dish_id=" +dish_id.__str__()+"));")
+        query = ("insert into dishes_in_order values (" + order_id.__str__() + ", " + dish_id.__str__() +", "+ amount.__str__() +",(select price from dish where dish_id=" + dish_id.__str__()+"));")
         connection.execute(query)
     except DatabaseException.FOREIGN_KEY_VIOLATION as e:
         print(e)
@@ -433,16 +427,13 @@ def order_does_not_contain_dish(order_id: int, dish_id: int) -> ReturnValue:
 def get_all_order_items(order_id: int) -> List[OrderDish]:
     try:
         connection = Connector.DBConnector()
-        query = ("select d.dish_id, d.price, count(*) amount "
-                 "from \"order\" o "
-                 "join dishes_in_order dio on dio.order_id = o.order_id "
-                 "join dish d on d.dish_id = dio.dish_id "
-                 "where o.order_id = " + order_id.__str__()
-                 + " group by d.dish_id, d.price "
-                   "order by d.dish_id;")
+        query = ("select dish_id, dish_price, amount "
+                 "from dishes_in_order "
+                 "where order_id = " + order_id.__str__() +
+                 " order by dish_id;")
         _, result = connection.execute(query)
         orders_dishes = [
-            OrderDish(order_dish['dish_id'], order_dish['amount'], order_dish['price']) for order_dish in result
+            OrderDish(order_dish['dish_id'], order_dish['amount'], order_dish['dish_price']) for order_dish in result
         ]
     except DatabaseException.ConnectionInvalid:
         return []
@@ -533,7 +524,7 @@ def get_most_expensive_anonymous_order() -> Order:
 
 
 def is_most_liked_dish_equal_to_most_purchased() -> bool:
-    # TODO: implement
+    query = ""
     pass
 
 

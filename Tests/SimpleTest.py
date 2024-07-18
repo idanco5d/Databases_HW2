@@ -54,6 +54,19 @@ class Test(AbstractTest):
 
     def test_basic_get_all_order_items(self) -> None:
         self.assertEqual([], Solution.get_all_order_items(1))
+        c1 = Customer(1, 'name', "0502220000", "Haifa")
+        self.assertEqual(ReturnValue.OK, Solution.add_customer(c1), 'regular customer')
+        o1 = Order(1, datetime.datetime.combine(datetime.datetime.today(), datetime.datetime.min.time()))
+        self.assertEqual(ReturnValue.OK, Solution.add_order(o1))
+        d1 = Dish(1, "testDish", 1042.42023, False)
+        self.assertEqual(ReturnValue.OK, Solution.add_dish(d1))
+
+        self.assertEqual(ReturnValue.OK, Solution.customer_placed_order(c1.get_cust_id(), o1.get_order_id()))
+        self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(o1.get_order_id(), d1.get_dish_id(), 20))
+        d2 = Solution.get_all_order_items(1)[0]
+        self.assertEqual(d2.get_price(), d1.get_price())
+        self.assertEqual(d2.get_dish_id(), d1.get_dish_id())
+        self.assertEqual(d2.get_amount(), 20)
 
     def test_basic_customer_likes_dislikes(self) -> None:
         c1 = Customer(1, 'name', "0502220000", "Haifa")
