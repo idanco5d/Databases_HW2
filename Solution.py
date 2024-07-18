@@ -523,8 +523,23 @@ def get_max_amount_of_money_cust_spent(cust_id: int) -> float:
 
 
 def get_most_expensive_anonymous_order() -> Order:
-    # TODO: implement
-    pass
+    try:
+        connection = Connector.DBConnector()
+        query = ("select tbl.order_id, o.date "
+                 "from ("
+                 "select sum(price), dio.order_id "
+                 "from dish d "
+                 "join dishes_in_order dio on dio.order_id = d.dish_id "
+                 "join customer_orders co on co.order_id = dio.order_id "
+                 "where not exists (select 1 from customer c where c.cust_id = co.cust_id) "
+                 "group by dio.order_id "
+                 "order by 1 desc, 2 limit 1);"
+                 ") tbl "
+                 "join \"order\" o on o.order_id = tbl.order_id;")
+        _, result = connection.execute(query)
+        return Order(result['order_id'], result['date'])
+    except DatabaseException.ConnectionInvalid:
+        return BadOrder()
 
 
 def is_most_liked_dish_equal_to_most_purchased() -> bool:
