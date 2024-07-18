@@ -15,82 +15,63 @@ from Business.OrderDish import OrderDish
 
 
 def create_tables() -> None:
-    # check if can be changed
-    connection = None
-    try:
-        connection = Connector.DBConnector()
+    connection = Connector.DBConnector()
 
-        create_cust_table = ("create table customer "
-                             "(cust_id integer check (cust_id > 0), "
-                             "full_name text, "
-                             "phone text, "
-                             "address text check (length(address) > 2), "
-                             "primary key (cust_id),"
-                             "unique (cust_id)); ")
+    create_cust_table = ("create table customer "
+                         "(cust_id integer check (cust_id > 0), "
+                         "full_name text, "
+                         "phone text, "
+                         "address text check (length(address) > 2), "
+                         "primary key (cust_id),"
+                         "unique (cust_id)); ")
 
-        create_order_table = ("create table \"order\""
-                              "(order_id integer check (order_id > 0),"
-                              "date timestamp,"
-                              "primary key (order_id),"
-                              "unique (order_id)); ")
+    create_order_table = ("create table \"order\""
+                          "(order_id integer check (order_id > 0),"
+                          "date timestamp,"
+                          "primary key (order_id),"
+                          "unique (order_id)); ")
 
-        create_dish_table = ("create table dish "
-                             "(dish_id integer check (dish_id>0),"
-                             "name text check (length(name) > 3),"
-                             "price decimal check (price>0),"
-                             "is_active boolean,"
-                             "primary key (dish_id),"
-                             "unique (dish_id)); ")
+    create_dish_table = ("create table dish "
+                         "(dish_id integer check (dish_id>0),"
+                         "name text check (length(name) > 2),"
+                         "price decimal check (price>0),"
+                         "is_active boolean,"
+                         "primary key (dish_id),"
+                         "unique (dish_id)); ")
 
-        create_customer_orders_table = ("create table customer_orders "
-                                        "(cust_id integer,"
-                                        "order_id integer,"
-                                        "foreign key (cust_id) references customer(cust_id),"
-                                        "foreign key (order_id) references \"order\"(order_id),"
-                                        "primary key (order_id)); ")
+    create_customer_orders_table = ("create table customer_orders "
+                                    "(cust_id integer,"
+                                    "order_id integer,"
+                                    "foreign key (cust_id) references customer(cust_id),"
+                                    "foreign key (order_id) references \"order\"(order_id),"
+                                    "primary key (order_id)); ")
 
-        create_dishes_in_order_table = ("create table dishes_in_order "
-                                        "(dish_id integer,"
-                                        "order_id integer,"
-                                        "amount integer check ( amount>0),"
-                                        "dish_price decimal,"
-                                        "foreign key (dish_id) references dish(dish_id),"
-                                        "foreign key (order_id) references \"order\"(order_id),"
-                                        "primary key (dish_id, order_id)); ")
+    create_dishes_in_order_table = ("create table dishes_in_order "
+                                    "(dish_id integer,"
+                                    "order_id integer,"
+                                    "amount integer check (amount>0),"
+                                    "dish_price decimal,"
+                                    "foreign key (dish_id) references dish(dish_id),"
+                                    "foreign key (order_id) references \"order\"(order_id),"
+                                    "primary key (dish_id, order_id)); ")
 
-        create_likes_table = ("create table likes "
-                              "(cust_id integer,"
-                              "dish_id integer,"
-                              "foreign key (cust_id) references customer(cust_id),"
-                              "foreign key (dish_id) references dish(dish_id),"
-                              "primary key (dish_id, cust_id));")
-        queries = [
-            create_cust_table,
-            create_order_table,
-            create_dish_table,
-            create_customer_orders_table,
-            create_dishes_in_order_table,
-            create_likes_table
-        ]
-        for query in queries:
-            connection.execute(query)
-    except DatabaseException.NOT_NULL_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
-    except DatabaseException.CHECK_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
-    except DatabaseException.UNIQUE_VIOLATION as e:
-        print(e)
-        return ReturnValue.ALREADY_EXISTS
-    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
-    except Exception as e:
-        print(e)
-    finally:
-        connection.close()
-    pass
+    create_likes_table = ("create table likes "
+                          "(cust_id integer,"
+                          "dish_id integer,"
+                          "foreign key (cust_id) references customer(cust_id),"
+                          "foreign key (dish_id) references dish(dish_id),"
+                          "primary key (dish_id, cust_id));")
+    queries = [
+        create_cust_table,
+        create_order_table,
+        create_dish_table,
+        create_customer_orders_table,
+        create_dishes_in_order_table,
+        create_likes_table
+    ]
+    for query in queries:
+        connection.execute(query)
+    connection.close()
 
 
 def clear_tables() -> None:
@@ -99,23 +80,17 @@ def clear_tables() -> None:
 
 
 def drop_tables() -> None:
-    connection = None
-    try:
-        connection = Connector.DBConnector()
-        drop_likes = "drop table likes;"
-        drop_dishes_in_order = "drop table dishes_in_order;"
-        drop_customer_orders = "drop table customer_orders;"
-        drop_customer = "drop table customer; "
-        drop_order = "drop table \"order\"; "
-        drop_dish = "drop table dish;"
-        queries = [drop_customer_orders, drop_dishes_in_order, drop_likes, drop_customer, drop_order, drop_dish]
-        for query in queries:
-            connection.execute(query)
-    except Exception as e:
-        print(e)
-    finally:
-        connection.close()
-    pass
+    connection = Connector.DBConnector()
+    drop_likes = "drop table likes;"
+    drop_dishes_in_order = "drop table dishes_in_order;"
+    drop_customer_orders = "drop table customer_orders;"
+    drop_customer = "drop table customer; "
+    drop_order = "drop table \"order\"; "
+    drop_dish = "drop table dish;"
+    queries = [drop_customer_orders, drop_dishes_in_order, drop_likes, drop_customer, drop_order, drop_dish]
+    for query in queries:
+        connection.execute(query)
+    connection.close()
 
 
 # CRUD API
@@ -129,25 +104,21 @@ def add_customer(customer: Customer) -> ReturnValue:
         query = ("insert into customer values (" + customer.get_cust_id().__str__() + ", '" + customer.get_full_name()
                  + "', '" + customer.get_phone() + "', '" + customer.get_address() + "');")
         connection.execute(query)
-    except DatabaseException.CHECK_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
-    except DatabaseException.UNIQUE_VIOLATION as e:
-        print(e)
-        return ReturnValue.ALREADY_EXISTS
-    except Exception as e:
-        print(e)
-        return ReturnValue.ERROR
-    finally:
+    except DatabaseException.CHECK_VIOLATION:
         connection.close()
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.UNIQUE_VIOLATION:
+        connection.close()
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.ConnectionInvalid:
+        connection.close()
+        return ReturnValue.ERROR
+    connection.close()
     return ReturnValue.OK
-
-    pass
 
 
 def get_customer(customer_id: int) -> Customer:
     connection = None
-    customer = None
     try:
         connection = Connector.DBConnector()
         query = "select * from customer where cust_id = " + customer_id.__str__() + ";"
@@ -157,13 +128,10 @@ def get_customer(customer_id: int) -> Customer:
         else:
             db_result = result[0]
             customer = Customer(db_result['cust_id'], db_result['full_name'], db_result['phone'], db_result['address'])
-    except Exception as e:
-        print(e)
+    except DatabaseException.ConnectionInvalid:
         customer = BadCustomer()
-    finally:
-        connection.close()
-        return customer
-    pass
+    connection.close()
+    return customer
 
 
 def delete_customer(customer_id: int) -> ReturnValue:
@@ -173,15 +141,13 @@ def delete_customer(customer_id: int) -> ReturnValue:
         query = "DELETE FROM customer where cust_id= " + customer_id.__str__() + ";"
         rows_effected, _ = connection.execute(query)
         if rows_effected == 0:
+            connection.close()
             return ReturnValue.NOT_EXISTS
 
-    except Exception as e:
-        print(e)
-        return ReturnValue.ERROR
-    finally:
+    except DatabaseException.ConnectionInvalid:
         connection.close()
-        return ReturnValue.OK
-    pass
+        return ReturnValue.ERROR
+    return ReturnValue.OK
 
 
 def add_order(order: Order) -> ReturnValue:
@@ -194,30 +160,25 @@ def add_order(order: Order) -> ReturnValue:
                     "insert into \"order\" values (" + order.get_order_id().__str__() + ", '" + order.get_datetime().year.__str__() + "-" + order.get_datetime().month.__str__() + "-" + order.get_datetime().day.__str__() + "');")
         connection.execute(query)
 
-    except DatabaseException.NOT_NULL_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
-    except DatabaseException.CHECK_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
-    except DatabaseException.UNIQUE_VIOLATION as e:
-        print(e)
-        return ReturnValue.ALREADY_EXISTS
-    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
-    except Exception as e:
-        print(e)
-        return ReturnValue.ERROR
-    finally:
+    except DatabaseException.NOT_NULL_VIOLATION:
         connection.close()
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION:
+        connection.close()
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.UNIQUE_VIOLATION:
+        connection.close()
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.FOREIGN_KEY_VIOLATION:
+        connection.close()
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.ConnectionInvalid:
+        return ReturnValue.ERROR
+    connection.close()
     return ReturnValue.OK
-    pass
 
 
 def get_order(order_id: int) -> Order:
-    connection = None
-    order = None
     try:
         connection = Connector.DBConnector()
         query = "select * from \"order\" where order_id = " + order_id.__str__() + ";"
@@ -227,13 +188,10 @@ def get_order(order_id: int) -> Order:
         else:
             db_result = result[0]
             order = Order(db_result['order_id'], db_result['date'])
-    except Exception as e:
-        print(e)
-        order = BadOrder()
-    finally:
-        connection.close()
-        return order
-    pass
+    except DatabaseException.ConnectionInvalid:
+        return BadOrder()
+    connection.close()
+    return order
 
 
 def delete_order(order_id: int) -> ReturnValue:
@@ -243,15 +201,13 @@ def delete_order(order_id: int) -> ReturnValue:
         query = "DELETE FROM \"order\" where order_id= " + order_id.__str__() + ";"
         rows_effected, _ = connection.execute(query)
         if rows_effected == 0:
+            connection.close()
             return ReturnValue.NOT_EXISTS
 
-    except DatabaseException.ConnectionInvalid as e:
-        print(e)
+    except DatabaseException.ConnectionInvalid:
         return ReturnValue.ERROR
-    finally:
-        connection.close()
-        return ReturnValue.OK
-        pass
+    connection.close()
+    return ReturnValue.OK
 
 
 def add_dish(dish: Dish) -> ReturnValue:
@@ -265,22 +221,18 @@ def add_dish(dish: Dish) -> ReturnValue:
         )
         connection.execute(query)
     except DatabaseException.CHECK_VIOLATION as e:
-        print(e)
+        connection.close()
         return ReturnValue.BAD_PARAMS
     except DatabaseException.UNIQUE_VIOLATION as e:
-        print(e)
-        return ReturnValue.ALREADY_EXISTS
-    except Exception as e:
-        print(e)
-        return ReturnValue.ERROR
-    finally:
         connection.close()
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.ConnectionInvalid as e:
+        return ReturnValue.ERROR
+    connection.close()
     return ReturnValue.OK
 
 
 def get_dish(dish_id: int) -> Dish:
-    connection = None
-    dish = None
     try:
         connection = Connector.DBConnector()
         query = "select * from dish where dish_id = " + dish_id.__str__() + ";"
@@ -290,13 +242,10 @@ def get_dish(dish_id: int) -> Dish:
         else:
             db_result = result[0]
             dish = Dish(db_result['dish_id'], db_result['name'], db_result['price'], db_result['is_active'])
-    except Exception as e:
-        print(e)
-        dish = BadDish()
-    finally:
-        connection.close()
-        return dish
-    pass
+    except DatabaseException.ConnectionInvalid:
+        return BadDish()
+    connection.close()
+    return dish
 
 
 def update_dish_price(dish_id: int, price: float) -> ReturnValue:
@@ -306,14 +255,15 @@ def update_dish_price(dish_id: int, price: float) -> ReturnValue:
         query = "update dish set price = " + price.__str__() + " where dish_id = " + dish_id.__str__() + ";"
         rows_affected, _ = connection.execute(query)
         if rows_affected == 0:
+            connection.close()
             return ReturnValue.NOT_EXISTS
-    except DatabaseException.CHECK_VIOLATION as e:
+    except DatabaseException.CHECK_VIOLATION:
         connection.close()
         return ReturnValue.BAD_PARAMS
-    except Exception as e:
+    except DatabaseException.ConnectionInvalid:
         return ReturnValue.ERROR
+    connection.close()
     return ReturnValue.OK
-    pass
 
 
 def update_dish_active_status(dish_id: int, is_active: bool) -> ReturnValue:
@@ -323,12 +273,14 @@ def update_dish_active_status(dish_id: int, is_active: bool) -> ReturnValue:
         query = "update dish set is_active = " + is_active.__str__() + " where dish_id = " + dish_id.__str__() + ";"
         rows_affected, _ = connection.execute(query)
         if rows_affected == 0:
+            connection.close()
             return ReturnValue.NOT_EXISTS
     except DatabaseException.CHECK_VIOLATION as e:
         connection.close()
         return ReturnValue.BAD_PARAMS
-    except Exception as e:
+    except DatabaseException.ConnectionInvalid as e:
         return ReturnValue.ERROR
+    connection.close()
     return ReturnValue.OK
 
 
@@ -340,27 +292,19 @@ def customer_placed_order(customer_id: int, order_id: int) -> ReturnValue:
         query = ("insert into customer_orders values (" + customer_id.__str__() + ", '" + order_id.__str__() + "');")
         connection.execute(query)
 
-    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
-        print(e)
-        return ReturnValue.NOT_EXISTS
-    except DatabaseException.UNIQUE_VIOLATION as e:
-        print(e)
-        return ReturnValue.ALREADY_EXISTS
-    except DatabaseException.ConnectionInvalid as e:
-        print(e)
-        return ReturnValue.ERROR
-    except Exception as e:
-        print(e)
-        return ReturnValue.ERROR
-    finally:
+    except DatabaseException.FOREIGN_KEY_VIOLATION:
         connection.close()
-        return ReturnValue.OK
-    pass
+        return ReturnValue.NOT_EXISTS
+    except DatabaseException.UNIQUE_VIOLATION:
+        connection.close()
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.ConnectionInvalid:
+        return ReturnValue.ERROR
+    connection.close()
+    return ReturnValue.OK
 
 
 def get_customer_that_placed_order(order_id: int) -> Customer:
-    connection = None
-    customer = None
     try:
         connection = Connector.DBConnector()
         query = "select c.* from customer_orders co" \
@@ -371,13 +315,10 @@ def get_customer_that_placed_order(order_id: int) -> Customer:
             customer = BadCustomer()
         else:
             customer = Customer(result["cust_id"], result["full_name"], result["phone"], result["address"])
-    except Exception as e:
-        print(e)
+    except DatabaseException.ConnectionInvalid:
         return BadCustomer()
-    finally:
-        connection.close()
-        return customer
-    pass
+    connection.close()
+    return customer
 
 
 def order_contains_dish(order_id: int, dish_id: int, amount: int) -> ReturnValue:
@@ -386,42 +327,32 @@ def order_contains_dish(order_id: int, dish_id: int, amount: int) -> ReturnValue
         connection = Connector.DBConnector()
         query = ("insert into dishes_in_order values (" + order_id.__str__() + ", " + dish_id.__str__() +", "+ amount.__str__() +",(select price from dish where dish_id=" + dish_id.__str__()+"));")
         connection.execute(query)
-    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
-        print(e)
-        return ReturnValue.NOT_EXISTS
-    except DatabaseException.UNIQUE_VIOLATION as e:
-        print(e)
-        return ReturnValue.ALREADY_EXISTS
-    except DatabaseException.CHECK_VIOLATION as e:
-        print(e)
-        return ReturnValue.BAD_PARAMS
-    except DatabaseException.ConnectionInvalid as e:
-        print(e)
-        return ReturnValue.ERROR
-    except Exception as e:
-        print(e)
-        return ReturnValue.ERROR
-    finally:
+    except DatabaseException.FOREIGN_KEY_VIOLATION:
         connection.close()
-        return ReturnValue.OK
-    pass
+        return ReturnValue.NOT_EXISTS
+    except DatabaseException.UNIQUE_VIOLATION:
+        connection.close()
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.CHECK_VIOLATION:
+        connection.close()
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.ConnectionInvalid:
+        return ReturnValue.ERROR
+    connection.close()
+    return ReturnValue.OK
 
 
 def order_does_not_contain_dish(order_id: int, dish_id: int) -> ReturnValue:
-    connection = None
     try:
         connection = Connector.DBConnector()
         query = "DELETE FROM dishes_in_order where order_id= " + order_id.__str__() + " AND dish_id= " + dish_id.__str__() + ";"
-        row_effected, _ =connection.execute(query)
+        row_effected, _ = connection.execute(query)
         if row_effected == 0:
             return ReturnValue.NOT_EXISTS
-    except Exception as e:
-        print(e)
+    except DatabaseException.ConnectionInvalid:
         return ReturnValue.ERROR
-    finally:
-        connection.close()
-        return ReturnValue.OK
-        pass
+    connection.close()
+    return ReturnValue.OK
 
 
 def get_all_order_items(order_id: int) -> List[OrderDish]:
@@ -439,7 +370,6 @@ def get_all_order_items(order_id: int) -> List[OrderDish]:
         return []
     connection.close()
     return orders_dishes
-    pass
 
 
 def customer_likes_dish(cust_id: int, dish_id: int) -> ReturnValue:
@@ -455,7 +385,6 @@ def customer_likes_dish(cust_id: int, dish_id: int) -> ReturnValue:
         connection.close()
         return ReturnValue.NOT_EXISTS
     return ReturnValue.OK
-    pass
 
 
 def customer_dislike_dish(cust_id: int, dish_id: int) -> ReturnValue:
@@ -470,7 +399,6 @@ def customer_dislike_dish(cust_id: int, dish_id: int) -> ReturnValue:
     except DatabaseException.ConnectionInvalid:
         return ReturnValue.ERROR
     return ReturnValue.OK
-    pass
 
 
 def get_all_customer_likes(cust_id: int) -> List[Dish]:
