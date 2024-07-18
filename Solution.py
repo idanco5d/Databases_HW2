@@ -356,8 +356,21 @@ def order_contains_dish(order_id: int, dish_id: int, amount: int) -> ReturnValue
 
 
 def order_does_not_contain_dish(order_id: int, dish_id: int) -> ReturnValue:
-    # TODO: implement
-    pass
+    connection = None
+    try:
+        connection = Connector.DBConnector()
+        query = "DELETE FROM dishes_in_order where order_id= " + order_id.__str__() + " AND dish_id= " + dish_id.__str__() +";"
+
+    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
+        print(e)
+        return ReturnValue.NOT_EXISTS
+    except Exception as e:
+        print(e)
+        return ReturnValue.ERROR
+    finally:
+        connection.close()
+        return ReturnValue.OK
+        pass
 
 
 def get_all_order_items(order_id: int) -> List[OrderDish]:
