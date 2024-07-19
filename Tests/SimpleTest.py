@@ -2,6 +2,7 @@ import datetime
 import unittest
 import Solution as Solution
 from Business.Dish import Dish, BadDish
+from Business.OrderDish import OrderDish
 from Utility.ReturnValue import ReturnValue
 from Tests.AbstractTest import AbstractTest
 from Business.Customer import Customer, BadCustomer
@@ -13,124 +14,144 @@ from Business.Order import Order, BadOrder
 '''
 
 
-def basicCustomer():
-    return Customer(1, 'name', "0502220000", "Haifa")
+def createCustomer(cust_id=1, full_name='name', phone="0502220000", address="Haifa"):
+    return Customer(cust_id, full_name, phone, address)
 
 
-def basicOrder():
-    return Order(1, datetime.datetime.combine(datetime.datetime.today(), datetime.datetime.min.time()))
+def createOrder(order_id=1, date=datetime.datetime.now().replace(microsecond=0)):
+    return Order(order_id, date)
 
 
-def basicDish():
-    return Dish(1, "testDish", 1042.42023, False)
+def createDish(dish_id=1, name="testDish", price=1042.42023, is_active=True):
+    return Dish(dish_id, name, price, is_active)
 
 
-def assertCustomersEqual(assertThat, customer1, customer2) -> None:
-    assertThat(customer1.get_cust_id(), customer2.get_cust_id())
-    assertThat(customer1.get_phone(), customer2.get_phone())
-    assertThat(customer1.get_address(), customer2.get_address())
-    assertThat(customer1.get_full_name(), customer2.get_full_name())
+def assertCustomersEqual(assertEqual, customer1, customer2) -> None:
+    assertEqual(customer1.get_cust_id(), customer2.get_cust_id())
+    assertEqual(customer1.get_phone(), customer2.get_phone())
+    assertEqual(customer1.get_address(), customer2.get_address())
+    assertEqual(customer1.get_full_name(), customer2.get_full_name())
 
 
-def assertOrdersEqual(assertThat, order1, order2) -> None:
-    assertThat(order1.get_order_id(), order2.get_order_id())
-    assertThat(order1.get_datetime(), order2.get_datetime())
+def assertOrdersEqual(assertEqual, order1, order2) -> None:
+    assertEqual(order1.get_order_id(), order2.get_order_id())
+    assertEqual(order1.get_datetime(), order2.get_datetime())
 
 
-def assertDishesEqual(assertThat, dish1, dish2) -> None:
-    assertThat(dish1.get_name(), dish2.get_name())
-    assertThat(dish1.get_price(), dish2.get_price())
-    assertThat(dish1.get_is_active(), dish2.get_is_active())
+def assertDishesEqual(assertEqual, dish1, dish2) -> None:
+    assertEqual(dish1.get_name(), dish2.get_name())
+    assertEqual(dish1.get_price(), dish2.get_price())
+    assertEqual(dish1.get_is_active(), dish2.get_is_active())
+
+
+def assertOrderDishesEqual(assertEqual, orderDish1, orderDish2) -> None:
+    assertEqual(orderDish1.get_dish_id(), orderDish2.get_dish_id())
+    assertEqual(orderDish1.get_price(), orderDish2.get_price())
+    assertEqual(orderDish1.get_amount(), orderDish2.get_amount())
 
 
 class Test(AbstractTest):
+    # staff test
     def test_customer(self) -> None:
-        c1 = basicCustomer()
+        c1 = createCustomer()
         self.assertEqual(ReturnValue.OK, Solution.add_customer(c1), 'regular customer')
         c2 = Customer(2, None, "0502220000", "Haifa")
         self.assertEqual(ReturnValue.BAD_PARAMS, Solution.add_customer(c2), 'invalid name')
 
     def test_basic_order(self) -> None:
-        o1 = basicOrder()
-        self.assertEqual(ReturnValue.OK, Solution.add_order(o1))
-        o2 = Solution.get_order(o1.get_order_id())
-        self.assertEqual(o1.get_datetime(), o2.get_datetime())
+        order1 = createOrder()
+        self.assertEqual(ReturnValue.OK, Solution.add_order(order1))
+        order2 = Solution.get_order(order1.get_order_id())
+        assertOrdersEqual(self.assertEqual, order1, order2)
 
     def test_basic_dish(self) -> None:
-        d1 = basicDish()
-        self.assertEqual(ReturnValue.OK, Solution.add_dish(d1))
-        d2 = Solution.get_dish(d1.get_dish_id())
-        self.assertEqual(d1.get_name(), d2.get_name())
-        self.assertEqual(d1.get_price(), d2.get_price())
-        self.assertEqual(d1.get_is_active(), d2.get_is_active())
+        dish1 = createDish()
+        self.assertEqual(ReturnValue.OK, Solution.add_dish(dish1))
+        dish2 = Solution.get_dish(dish1.get_dish_id())
+        assertDishesEqual(self.assertEqual, dish1, dish2)
 
     def test_basic_update_dish_price(self) -> None:
-        d1 = basicDish()
-        self.assertEqual(ReturnValue.OK, Solution.add_dish(d1))
-        self.assertEqual(ReturnValue.OK, Solution.update_dish_price(1, 3.141))
-        d2 = Solution.get_dish(d1.get_dish_id())
-        self.assertEqual(d1.get_name(), d2.get_name())
-        self.assertEqual(3.141, d2.get_price())
-        self.assertEqual(d1.get_is_active(), d2.get_is_active())
+        dish1 = createDish()
+        newPrice = 3.141
+
+        self.assertEqual(ReturnValue.OK, Solution.add_dish(dish1))
+        self.assertEqual(ReturnValue.OK, Solution.update_dish_price(dish1.get_dish_id(), newPrice))
+
+        dish2 = Solution.get_dish(dish1.get_dish_id())
+        dish1.set_price(newPrice)
+        assertDishesEqual(self.assertEqual, dish1, dish2)
 
     def test_basic_update_dish_is_active(self) -> None:
-        d1 = basicDish()
-        self.assertEqual(ReturnValue.OK, Solution.add_dish(d1))
-        self.assertEqual(ReturnValue.OK, Solution.update_dish_active_status(1, True))
-        d2 = Solution.get_dish(d1.get_dish_id())
-        self.assertEqual(d1.get_name(), d2.get_name())
-        self.assertEqual(d1.get_price(), d2.get_price())
-        self.assertEqual(True, d2.get_is_active())
+        dish1 = createDish()
+        newIsActive = True
+
+        self.assertEqual(ReturnValue.OK, Solution.add_dish(dish1))
+        self.assertEqual(ReturnValue.OK, Solution.update_dish_active_status(dish1.get_dish_id(), newIsActive))
+
+        dish2 = Solution.get_dish(dish1.get_dish_id())
+        dish1.set_is_active(newIsActive)
+        assertDishesEqual(self.assertEqual, dish1, dish2)
 
     def test_basic_order_with_items(self) -> None:
-        self.assertEqual([], Solution.get_all_order_items(1))
-        c1 = basicCustomer()
-        self.assertEqual(ReturnValue.OK, Solution.add_customer(c1), 'regular customer')
-        o1 = basicOrder()
-        self.assertEqual(ReturnValue.OK, Solution.add_order(o1))
-        d1 = basicDish()
-        self.assertEqual(ReturnValue.OK, Solution.add_dish(d1))
+        order, customer = self.customer_placed_order()
+        dish1 = createDish()
+        self.assertEqual(ReturnValue.OK, Solution.add_dish(dish1))
+        self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order.get_order_id(), dish1.get_dish_id(), 20))
+        dish2 = Solution.get_all_order_items(1)[0]
+        self.assertEqual(dish2.get_price(), dish1.get_price())
+        self.assertEqual(dish2.get_dish_id(), dish1.get_dish_id())
+        self.assertEqual(dish2.get_amount(), 20)
 
-        self.assertEqual(ReturnValue.OK, Solution.customer_placed_order(c1.get_cust_id(), o1.get_order_id()))
-        self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(o1.get_order_id(), d1.get_dish_id(), 20))
-        d2 = Solution.get_all_order_items(1)[0]
-        self.assertEqual(d2.get_price(), d1.get_price())
-        self.assertEqual(d2.get_dish_id(), d1.get_dish_id())
-        self.assertEqual(d2.get_amount(), 20)
+    def customer_placed_order(self):
+        self.assertEqual([], Solution.get_all_order_items(1))
+        customer = createCustomer()
+        self.assertEqual(ReturnValue.OK, Solution.add_customer(customer))
+        order = createOrder()
+        self.assertEqual(ReturnValue.OK, Solution.add_order(order))
+        self.assertEqual(ReturnValue.OK, Solution.customer_placed_order(customer.get_cust_id(), order.get_order_id()))
+        return order, customer
 
     def test_basic_customer_likes_dislikes(self) -> None:
-        c1, d1 = self.customerLikesDish()
-        self.assertEqual(ReturnValue.OK, Solution.customer_dislike_dish(c1.get_cust_id(), d1.get_dish_id()))
-        self.assertEqual(ReturnValue.NOT_EXISTS, Solution.customer_dislike_dish(c1.get_cust_id(), d1.get_dish_id()))
+        customer1, dish1 = self.customerLikesDish()
+        self.assertEqual(ReturnValue.OK, Solution.customer_dislike_dish(customer1.get_cust_id(), dish1.get_dish_id()))
+        self.assertEqual(
+            ReturnValue.NOT_EXISTS, Solution.customer_dislike_dish(customer1.get_cust_id(), dish1.get_dish_id())
+        )
 
     def test_basic_get_all_customer_likes(self) -> None:
-        c1, d1 = self.customerLikesDish()
-        self.assertEqual([d1], Solution.get_all_customer_likes(c1.get_cust_id()))
+        customer1, dish1 = self.customerLikesDish()
+        self.assertEqual([dish1], Solution.get_all_customer_likes(customer1.get_cust_id()))
+
+    def test_basic_get_customer_that_placed_order(self) -> None:
+        order, customer = self.customer_placed_order()
+        assertCustomersEqual(
+            self.assertEqual, customer, Solution.get_customer_that_placed_order(customer.get_cust_id())
+        )
 
     def customerLikesDish(self):
-        c1 = basicCustomer()
-        self.assertEqual(ReturnValue.OK, Solution.add_customer(c1), 'regular customer')
-        d1 = basicDish()
-        self.assertEqual(ReturnValue.OK, Solution.add_dish(d1))
-        self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(c1.get_cust_id(), d1.get_dish_id()))
-        return c1, d1
+        customer1 = createCustomer()
+        self.assertEqual(ReturnValue.OK, Solution.add_customer(customer1), 'regular customer')
+        dish1 = createDish()
+        self.assertEqual(ReturnValue.OK, Solution.add_dish(dish1))
+        self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer1.get_cust_id(), dish1.get_dish_id()))
+        return customer1, dish1
 
     def test_cannot_insert_null_to_entities(self) -> None:
         customers = [
-            Customer(None, 'name', "0502220000", "Haifa"),
-            Customer(1, None, "0502220000", "Haifa"),
-            Customer(1, 'name', None, "Haifa"),
-            Customer(1, 'name', "0502220000", None),
+            createCustomer(cust_id=None),
+            createCustomer(full_name=None),
+            createCustomer(phone=None),
+            createCustomer(address=None),
         ]
         orders = [
-            Order(None, datetime.datetime.combine(datetime.datetime.today(), datetime.datetime.min.time())),
-            Order(1, None),
+            createOrder(order_id=None),
+            createOrder(date=None),
         ]
         dishes = [
-            Dish(None, "testDish", 1042.42023, False),
-            Dish(1, None, 1042.42023, False),
-            Dish(1, "21", None, False),
-            Dish(1, "21", 1, None),
+            createDish(dish_id=None),
+            createDish(name=None),
+            createDish(price=None),
+            createDish(is_active=None),
         ]
 
         entitiesAndAdders = [
@@ -143,56 +164,54 @@ class Test(AbstractTest):
                 self.assertEqual(ReturnValue.BAD_PARAMS, adder(entity))
 
     def test_ids_are_positive(self) -> None:
-        entityAndAdders = [
+        entitiesAndAdders = [
             [
-                Customer(-1, 'name', "0502220000", "Haifa"),
+                [createCustomer(cust_id=-1), createCustomer(cust_id=0)],
                 Solution.add_customer
             ],
             [
-                Order(-1, datetime.datetime.combine(datetime.datetime.today(), datetime.datetime.min.time())),
+                [createOrder(order_id=-1), createOrder(order_id=0)],
                 Solution.add_order
             ],
             [
-                Dish(-1, "testDish", 1042.42023, False),
+                [createDish(dish_id=-1), createDish(dish_id=0)],
                 Solution.add_dish
             ]
         ]
-        for entityAndAdder in entityAndAdders:
-            entity, adder = entityAndAdder
-            self.assertEqual(ReturnValue.BAD_PARAMS, adder(entity))
+        for entityAndAdder in entitiesAndAdders:
+            entities, adder = entityAndAdder
+            for entity in entities:
+                self.assertEqual(ReturnValue.BAD_PARAMS, adder(entity))
 
     def test_customer_address_length(self) -> None:
-        badCust = Customer(1, '', "", "TT")
-        okCust = Customer(1, '', "", "TTT")
+        badCust = createCustomer(address="AA")
+        okCust = createCustomer(address="AAA")
         self.assertEqual(ReturnValue.BAD_PARAMS, Solution.add_customer(badCust))
         self.assertEqual(ReturnValue.OK, Solution.add_customer(okCust))
 
     def test_dish_name_length(self) -> None:
-        badDish = Dish(1, "TT", 1, False)
-        okDish = Dish(1, "TTT", 1, False)
+        badDish = createDish(name="AA")
+        okDish = createDish(name="AAA")
         self.assertEqual(ReturnValue.BAD_PARAMS, Solution.add_dish(badDish))
         self.assertEqual(ReturnValue.OK, Solution.add_dish(okDish))
 
     def test_dish_price_positive(self) -> None:
-        badDish1 = Dish(1, "TTT", -1, False)
-        badDish2 = Dish(1, "TTT", 0, False)
-        okDish = Dish(1, "TTT", 1, False)
-        self.assertEqual(ReturnValue.BAD_PARAMS, Solution.add_dish(badDish1))
-        self.assertEqual(ReturnValue.BAD_PARAMS, Solution.add_dish(badDish2))
-        self.assertEqual(ReturnValue.OK, Solution.add_dish(okDish))
+        badDishes = [createDish(price=-1), createDish(price=0)]
+        for badDish in badDishes:
+            self.assertEqual(ReturnValue.BAD_PARAMS, Solution.add_dish(badDish))
 
-    def test_cannot_insert_same_id(self) -> None:
+    def test_cannot_insert_same_entity_id(self) -> None:
         customers = [
-            basicCustomer(),
-            Customer(1, "None", "0502220000", "Haifa"),
+            createCustomer(),
+            createCustomer(full_name="test"),
         ]
         orders = [
-            basicOrder(),
-            Order(1, datetime.datetime.today()),
+            createOrder(),
+            createOrder(date=datetime.datetime.today()),
         ]
         dishes = [
-            Dish(1, "testDish1", 1042.42023, False),
-            Dish(1, "testDish2", 1, False),
+            createDish(),
+            createDish(price=1),
         ]
 
         entitiesAndAdders = [
@@ -204,22 +223,303 @@ class Test(AbstractTest):
             self.assertEqual(ReturnValue.OK, adder(entities[0]))
             self.assertEqual(ReturnValue.ALREADY_EXISTS, adder(entities[1]))
 
-    def test_get_not_exists(self) -> None:
-        self.assertEqual(Solution.add_customer(basicCustomer()), ReturnValue.OK)
-        self.assertEqual(Solution.add_order(basicOrder()), ReturnValue.OK)
-        self.assertEqual(Solution.add_dish(basicDish()), ReturnValue.OK)
+    def test_get_not_existing_entities(self) -> None:
+        self.assertEqual(Solution.add_customer(createCustomer()), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(createOrder()), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(createDish()), ReturnValue.OK)
 
-        shouldBeBadCustomer = Solution.get_customer(basicCustomer().get_cust_id() + 1)
+        shouldBeBadCustomer = Solution.get_customer(createCustomer().get_cust_id() + 1)
         actualBadCustomer = BadCustomer()
         assertCustomersEqual(self.assertEqual, shouldBeBadCustomer, actualBadCustomer)
 
-        shouldBeBadOrder = Solution.get_order(basicOrder().get_order_id() + 1)
+        shouldBeBadOrder = Solution.get_order(createOrder().get_order_id() + 1)
         actualBadOrder = BadOrder()
         assertOrdersEqual(self.assertEqual, shouldBeBadOrder, actualBadOrder)
 
-        shouldBeBadDish = Solution.get_dish(basicDish().get_dish_id() + 1)
+        shouldBeBadDish = Solution.get_dish(createDish().get_dish_id() + 1)
         actualBadDish = BadDish()
         assertDishesEqual(self.assertEqual, shouldBeBadDish, actualBadDish)
+
+    def test_basic_delete_entities(self) -> None:
+        self.assertEqual(Solution.add_customer(createCustomer()), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(createOrder()), ReturnValue.OK)
+
+        self.assertEqual(Solution.delete_customer(createCustomer().get_cust_id()), ReturnValue.OK)
+        self.assertEqual(Solution.delete_order(createOrder().get_order_id()), ReturnValue.OK)
+
+        assertCustomersEqual(self.assertEqual, BadCustomer(), Solution.get_customer(createCustomer().get_cust_id()))
+        assertOrdersEqual(self.assertEqual, BadOrder(), Solution.get_order(createOrder().get_order_id()))
+
+    def test_delete_not_existing_entities(self) -> None:
+        self.assertEqual(Solution.add_customer(createCustomer()), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(createOrder()), ReturnValue.OK)
+
+        self.assertEqual(Solution.delete_customer(createCustomer().get_cust_id()+1), ReturnValue.NOT_EXISTS)
+        self.assertEqual(Solution.delete_order(createOrder().get_order_id()+1), ReturnValue.NOT_EXISTS)
+
+    def test_make_sure_updated_price_is_positive(self) -> None:
+        dish = createDish()
+        self.assertEqual(Solution.add_dish(dish), ReturnValue.OK)
+        self.assertEqual(Solution.update_dish_price(dish.get_dish_id(), -1), ReturnValue.BAD_PARAMS)
+        self.assertEqual(Solution.update_dish_price(dish.get_dish_id(), 0), ReturnValue.BAD_PARAMS)
+
+    def test_update_non_existing_dish(self) -> None:
+        dish = createDish()
+        self.assertEqual(Solution.add_dish(dish), ReturnValue.OK)
+
+        non_existing_dish_id = dish.get_dish_id() + 1
+        self.assertEqual(Solution.update_dish_price(non_existing_dish_id, 1), ReturnValue.NOT_EXISTS)
+        self.assertEqual(Solution.update_dish_active_status(non_existing_dish_id, True), ReturnValue.NOT_EXISTS)
+
+    def test_clear_tables(self) -> None:
+        customer1 = createCustomer()
+        order1 = createOrder()
+        dish1 = createDish()
+
+        # insert two records for each table
+        self.assertEqual(Solution.add_customer(customer1), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order1), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish1), ReturnValue.OK)
+        self.assertEqual(Solution.customer_placed_order(customer1.get_cust_id(), order1.get_order_id()), ReturnValue.OK)
+        self.assertEqual(Solution.order_contains_dish(order1.get_order_id(), dish1.get_dish_id(), 1), ReturnValue.OK)
+        self.assertEqual(Solution.customer_likes_dish(customer1.get_cust_id(), dish1.get_dish_id()), ReturnValue.OK)
+        secondEntityId = 2
+        self.assertEqual(Solution.add_customer(createCustomer(cust_id=secondEntityId)), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(createOrder(order_id=secondEntityId)), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(createDish(dish_id=secondEntityId)), ReturnValue.OK)
+        self.assertEqual(Solution.customer_placed_order(secondEntityId, secondEntityId), ReturnValue.OK)
+        self.assertEqual(Solution.order_contains_dish(secondEntityId, secondEntityId, 1), ReturnValue.OK)
+        self.assertEqual(Solution.customer_likes_dish(secondEntityId, secondEntityId), ReturnValue.OK)
+
+        # clear tables
+        Solution.clear_tables()
+
+        # make sure all getter APIs do not return a result for given ids
+        assertCustomersEqual(self.assertEqual, BadCustomer(), Solution.get_customer(customer1.get_cust_id()))
+        assertCustomersEqual(self.assertEqual, BadCustomer(), Solution.get_customer(secondEntityId))
+        assertCustomersEqual(self.assertEqual, BadCustomer(), Solution.get_customer_that_placed_order(secondEntityId))
+        assertCustomersEqual(
+            self.assertEqual, BadCustomer(), Solution.get_customer_that_placed_order(customer1.get_cust_id())
+        )
+        assertOrdersEqual(self.assertEqual, BadOrder(), Solution.get_order(secondEntityId))
+        assertOrdersEqual(self.assertEqual, BadOrder(), Solution.get_order(order1.get_order_id()))
+        assertDishesEqual(self.assertEqual, BadDish(), Solution.get_dish(dish1.get_dish_id()))
+        assertDishesEqual(self.assertEqual, BadDish(), Solution.get_dish(secondEntityId))
+        self.assertEqual([], Solution.get_all_order_items(order1.get_order_id()))
+        self.assertEqual([], Solution.get_all_order_items(secondEntityId))
+        self.assertEqual([], Solution.get_all_customer_likes(customer1.get_cust_id()))
+        self.assertEqual([], Solution.get_all_customer_likes(secondEntityId))
+
+    def test_unique_customer_for_each_order(self) -> None:
+        customer = createCustomer()
+        order1 = createOrder()
+        order2 = createOrder(order_id=2)
+        self.assertEqual(Solution.add_customer(customer), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order1), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order2), ReturnValue.OK)
+
+        self.assertEqual(Solution.customer_placed_order(customer.get_cust_id(), order1.get_order_id()), ReturnValue.OK)
+        self.assertEqual(Solution.customer_placed_order(customer.get_cust_id(), order2.get_order_id()), ReturnValue.OK)
+        self.assertEqual(
+            Solution.customer_placed_order(customer.get_cust_id(), order1.get_order_id()), ReturnValue.ALREADY_EXISTS
+        )
+
+    def test_non_existing_customer_placed_order(self) -> None:
+        customer = createCustomer()
+        order = createOrder()
+        non_existing_id = 134232
+
+        self.assertEqual(Solution.add_customer(customer), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order), ReturnValue.OK)
+
+        self.assertEqual(
+            Solution.customer_placed_order(non_existing_id, order.get_order_id()), ReturnValue.NOT_EXISTS
+        )
+        self.assertEqual(
+            Solution.customer_placed_order(customer.get_cust_id(), non_existing_id), ReturnValue.NOT_EXISTS
+        )
+        self.assertEqual(
+            Solution.customer_placed_order(non_existing_id, non_existing_id), ReturnValue.NOT_EXISTS
+        )
+        self.assertEqual(Solution.customer_placed_order(customer.get_cust_id(), order.get_order_id()), ReturnValue.OK)
+
+    def test_non_existing_entities_order_contains_dish(self) -> None:
+        order1 = createOrder()
+        order2 = createOrder(order_id=2)
+        dish = createDish()
+        non_existing_id = 134232
+
+        self.assertEqual(Solution.add_dish(dish), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order1), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order2), ReturnValue.OK)
+
+        self.assertEqual(
+            Solution.order_contains_dish(order1.get_order_id(), non_existing_id, 1), ReturnValue.NOT_EXISTS
+        )
+        self.assertEqual(Solution.order_contains_dish(non_existing_id, dish.get_dish_id(), 1), ReturnValue.NOT_EXISTS)
+        self.assertEqual(Solution.order_contains_dish(non_existing_id, non_existing_id, 1), ReturnValue.NOT_EXISTS)
+
+        self.assertEqual(Solution.update_dish_active_status(dish.get_dish_id(), False), ReturnValue.OK)
+        self.assertEqual(
+            Solution.order_contains_dish(order2.get_order_id(), dish.get_dish_id(), 1), ReturnValue.NOT_EXISTS
+        )
+
+        self.assertEqual(
+            Solution.order_does_not_contain_dish(order1.get_order_id(), non_existing_id), ReturnValue.NOT_EXISTS
+        )
+        self.assertEqual(
+            Solution.order_does_not_contain_dish(non_existing_id, dish.get_dish_id()), ReturnValue.NOT_EXISTS
+        )
+        self.assertEqual(Solution.order_does_not_contain_dish(non_existing_id, non_existing_id), ReturnValue.NOT_EXISTS)
+
+    def test_amount_positive_order_contains_dish(self) -> None:
+        order = createOrder()
+        dish = createDish()
+
+        self.assertEqual(Solution.add_dish(dish), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order), ReturnValue.OK)
+
+        self.assertEqual(
+            Solution.order_contains_dish(order.get_order_id(), dish.get_dish_id(), -1), ReturnValue.BAD_PARAMS
+        )
+        self.assertEqual(
+            Solution.order_contains_dish(order.get_order_id(), dish.get_dish_id(), 0), ReturnValue.BAD_PARAMS
+        )
+
+    def test_unique_order_contains_dish(self) -> None:
+        order1 = createOrder()
+        order2 = createOrder(order_id=2)
+        dish1 = createDish()
+        dish2 = createDish(dish_id=2)
+
+        self.assertEqual(Solution.add_dish(dish1), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish2), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order1), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order2), ReturnValue.OK)
+
+        self.assertEqual(
+            Solution.order_contains_dish(order1.get_order_id(), dish1.get_dish_id(), 1), ReturnValue.OK
+        )
+        self.assertEqual(
+            Solution.order_contains_dish(order1.get_order_id(), dish1.get_dish_id(), 2), ReturnValue.ALREADY_EXISTS
+        )
+        self.assertEqual(
+            Solution.order_contains_dish(order2.get_order_id(), dish1.get_dish_id(), 1), ReturnValue.OK
+        )
+        self.assertEqual(
+            Solution.order_contains_dish(order1.get_order_id(), dish2.get_dish_id(), 1), ReturnValue.OK
+        )
+
+    def test_get_few_order_items(self) -> None:
+        order = createOrder()
+        dish1 = createDish()
+        dish2 = createDish(dish_id=2, name="testDish2", price=2)
+        dish3 = createDish(dish_id=3, name="testDish3", price=3)
+
+        self.assertEqual(Solution.add_dish(dish1), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish2), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish3), ReturnValue.OK)
+        self.assertEqual(Solution.add_order(order), ReturnValue.OK)
+
+        self.assertEqual(
+            Solution.order_contains_dish(order.get_order_id(), dish1.get_dish_id(), 1), ReturnValue.OK
+        )
+        self.assertEqual(
+            Solution.order_contains_dish(order.get_order_id(), dish2.get_dish_id(), 2), ReturnValue.OK
+        )
+        self.assertEqual(
+            Solution.order_contains_dish(order.get_order_id(), dish3.get_dish_id(), 3), ReturnValue.OK
+        )
+
+        orderDishes = Solution.get_all_order_items(order.get_order_id())
+        assertOrderDishesEqual(self.assertEqual, orderDishes[0], OrderDish(dish1.get_dish_id(), 1, dish1.get_price()))
+        assertOrderDishesEqual(self.assertEqual, orderDishes[1], OrderDish(dish2.get_dish_id(), 2, dish2.get_price()))
+        assertOrderDishesEqual(self.assertEqual, orderDishes[2], OrderDish(dish3.get_dish_id(), 3, dish3.get_price()))
+
+    def test_get_empty_order_dish(self) -> None:
+        order = createOrder()
+        self.assertEqual(Solution.add_order(order), ReturnValue.OK)
+
+        self.assertEqual([], Solution.get_all_order_items(23453))
+        self.assertEqual([], Solution.get_all_order_items(order.get_order_id()))
+
+    def test_like_already_exists(self) -> None:
+        customer1 = createCustomer()
+        customer2 = createCustomer(cust_id=2)
+        dish1 = createDish()
+        dish2 = createDish(dish_id=2)
+        self.assertEqual(Solution.add_customer(customer1), ReturnValue.OK)
+        self.assertEqual(Solution.add_customer(customer2), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish1), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish2), ReturnValue.OK)
+
+        self.insert_like_twice_and_assert_exists(customer1, dish1)
+        self.insert_like_twice_and_assert_exists(customer1, dish2)
+        self.insert_like_twice_and_assert_exists(customer2, dish1)
+
+    def insert_like_twice_and_assert_exists(self, customer, dish) -> None:
+        self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer.get_cust_id(), dish.get_dish_id()))
+        self.assertEqual(
+            ReturnValue.ALREADY_EXISTS, Solution.customer_likes_dish(customer.get_cust_id(), dish.get_dish_id())
+        )
+
+    def test_like_not_existing_entities(self) -> None:
+        customer = createCustomer()
+        dish = createDish()
+        self.assertEqual(Solution.add_customer(customer), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish), ReturnValue.OK)
+        non_existing_id = 143785
+
+        self.assertEqual(ReturnValue.NOT_EXISTS, Solution.customer_likes_dish(non_existing_id, dish.get_dish_id()))
+        self.assertEqual(ReturnValue.NOT_EXISTS, Solution.customer_likes_dish(customer.get_cust_id(), non_existing_id))
+        self.assertEqual(ReturnValue.NOT_EXISTS, Solution.customer_likes_dish(non_existing_id, non_existing_id))
+
+    def test_dislike_without_like_existing(self) -> None:
+        customer = createCustomer()
+        dish1 = createDish()
+        dish2 = createDish(dish_id=2)
+        self.assertEqual(Solution.add_customer(customer), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish1), ReturnValue.OK)
+        non_existing_id = 143785
+
+        self.assertEqual(
+            ReturnValue.OK, Solution.customer_likes_dish(customer.get_cust_id(), dish1.get_dish_id())
+        )
+        self.assertEqual(ReturnValue.NOT_EXISTS, Solution.customer_dislike_dish(non_existing_id, dish1.get_dish_id()))
+        self.assertEqual(
+            ReturnValue.NOT_EXISTS, Solution.customer_dislike_dish(customer.get_cust_id(), non_existing_id)
+        )
+        self.assertEqual(
+            ReturnValue.NOT_EXISTS, Solution.customer_dislike_dish(non_existing_id, non_existing_id)
+        )
+        self.assertEqual(
+            ReturnValue.NOT_EXISTS, Solution.customer_likes_dish(customer.get_cust_id(), dish2.get_dish_id())
+        )
+
+    def test_few_customer_likes(self) -> None:
+        customer = createCustomer()
+        dish1 = createDish()
+        dish2 = createDish(dish_id=2, name="testDish2", price=2.3)
+        dish3 = createDish(dish_id=3, name="testDish3", price=3.4)
+        self.assertEqual(Solution.add_dish(dish1), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish2), ReturnValue.OK)
+        self.assertEqual(Solution.add_dish(dish3), ReturnValue.OK)
+        self.assertEqual(Solution.add_customer(customer), ReturnValue.OK)
+        givenDishes = [dish1, dish2, dish3]
+
+        for dish in givenDishes:
+            self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer.get_cust_id(), dish.get_dish_id()))
+
+        outputDishes = Solution.get_all_customer_likes(customer.get_cust_id())
+        assertDishesEqual(self.assertEqual, outputDishes[0], dish1)
+        assertDishesEqual(self.assertEqual, outputDishes[1], dish2)
+        assertDishesEqual(self.assertEqual, outputDishes[2], dish3)
+
+    def test_all_likes_not_existing(self) -> None:
+        customer = createCustomer()
+        self.assertEqual(Solution.add_customer(customer), ReturnValue.OK)
+
+        self.assertEqual([], Solution.get_all_customer_likes(customer.get_cust_id()))
 
 
 # *** DO NOT RUN EACH TEST MANUALLY ***
