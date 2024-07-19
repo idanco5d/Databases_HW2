@@ -520,6 +520,7 @@ class Test(AbstractTest):
         self.assertEqual(Solution.add_customer(customer), ReturnValue.OK)
 
         self.assertEqual([], Solution.get_all_customer_likes(customer.get_cust_id()))
+        self.assertEqual([], Solution.get_all_customer_likes(34242))
 
 
 # *** DO NOT RUN EACH TEST MANUALLY ***
