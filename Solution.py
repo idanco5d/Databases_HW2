@@ -123,7 +123,7 @@ def get_customer(customer_id: int) -> Customer:
         connection = Connector.DBConnector()
         query = "select * from customer where cust_id = " + customer_id.__str__() + ";"
         _, result = connection.execute(query)
-        if not result:
+        if result.size() == 0:
             customer = BadCustomer()
         else:
             db_result = result[0]
@@ -183,7 +183,7 @@ def get_order(order_id: int) -> Order:
         connection = Connector.DBConnector()
         query = "select * from \"order\" where order_id = " + order_id.__str__() + ";"
         _, result = connection.execute(query)
-        if not result:
+        if result.size() == 0:
             order = BadOrder()
         else:
             db_result = result[0]
@@ -237,7 +237,7 @@ def get_dish(dish_id: int) -> Dish:
         connection = Connector.DBConnector()
         query = "select * from dish where dish_id = " + dish_id.__str__() + ";"
         _, result = connection.execute(query)
-        if not result:
+        if result.size() == 0:
             dish = BadDish()
         else:
             db_result = result[0]
@@ -311,7 +311,7 @@ def get_customer_that_placed_order(order_id: int) -> Customer:
                 "join customer c on c.cust_id = co.cust_id " \
                 "where order_id = " + order_id.__str__() + ";"
         _, result = connection.execute(query)
-        if not result:
+        if result.size() == 0:
             customer = BadCustomer()
         else:
             customer = Customer(result["cust_id"], result["full_name"], result["phone"], result["address"])
