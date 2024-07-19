@@ -25,6 +25,24 @@ def basicDish():
     return Dish(1, "testDish", 1042.42023, False)
 
 
+def assertCustomersEqual(assertThat, customer1, customer2) -> None:
+    assertThat(customer1.get_cust_id(), customer2.get_cust_id())
+    assertThat(customer1.get_phone(), customer2.get_phone())
+    assertThat(customer1.get_address(), customer2.get_address())
+    assertThat(customer1.get_full_name(), customer2.get_full_name())
+
+
+def assertOrdersEqual(assertThat, order1, order2) -> None:
+    assertThat(order1.get_order_id(), order2.get_order_id())
+    assertThat(order1.get_datetime(), order2.get_datetime())
+
+
+def assertDishesEqual(assertThat, dish1, dish2) -> None:
+    assertThat(dish1.get_name(), dish2.get_name())
+    assertThat(dish1.get_price(), dish2.get_price())
+    assertThat(dish1.get_is_active(), dish2.get_is_active())
+
+
 class Test(AbstractTest):
     def test_customer(self) -> None:
         c1 = basicCustomer()
@@ -193,22 +211,15 @@ class Test(AbstractTest):
 
         shouldBeBadCustomer = Solution.get_customer(basicCustomer().get_cust_id() + 1)
         actualBadCustomer = BadCustomer()
-        self.assertEqual(shouldBeBadCustomer.get_cust_id(), actualBadCustomer.get_cust_id())
-        self.assertEqual(shouldBeBadCustomer.get_phone(), actualBadCustomer.get_phone())
-        self.assertEqual(shouldBeBadCustomer.get_address(), actualBadCustomer.get_address())
-        self.assertEqual(shouldBeBadCustomer.get_full_name(), actualBadCustomer.get_full_name())
+        assertCustomersEqual(self.assertEqual, shouldBeBadCustomer, actualBadCustomer)
 
         shouldBeBadOrder = Solution.get_order(basicOrder().get_order_id() + 1)
         actualBadOrder = BadOrder()
-        self.assertEqual(shouldBeBadOrder.get_order_id(), actualBadOrder.get_order_id())
-        self.assertEqual(shouldBeBadOrder.get_datetime(), actualBadOrder.get_datetime())
+        assertOrdersEqual(self.assertEqual, shouldBeBadOrder, actualBadOrder)
 
         shouldBeBadDish = Solution.get_dish(basicDish().get_dish_id() + 1)
         actualBadDish = BadDish()
-        self.assertEqual(shouldBeBadDish.get_dish_id(), actualBadDish.get_dish_id())
-        self.assertEqual(shouldBeBadDish.get_name(), actualBadDish.get_name())
-        self.assertEqual(shouldBeBadDish.get_price(), actualBadDish.get_price())
-        self.assertEqual(shouldBeBadDish.get_is_active(), actualBadDish.get_is_active())
+        assertDishesEqual(self.assertEqual, shouldBeBadDish, actualBadDish)
 
 
 # *** DO NOT RUN EACH TEST MANUALLY ***
