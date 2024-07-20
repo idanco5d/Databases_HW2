@@ -61,16 +61,19 @@ def create_tables() -> None:
                           "foreign key (cust_id) references customer(cust_id),"
                           "foreign key (dish_id) references dish(dish_id),"
                           "primary key (dish_id, cust_id));")
-    queries = [
-        create_cust_table,
-        create_order_table,
-        create_dish_table,
-        create_customer_orders_table,
-        create_dishes_in_order_table,
-        create_likes_table
-    ]
-    for query in queries:
-        connection.execute(query)
+
+    create_view_orders_total_price = ("create view orders_total_price as "
+                                      "(select sum(amount * dish_price) as order_price, dio.order_id "
+                                      "from dishes_in_order dio "
+                                      "group by dio.order_id);")
+    query = (create_cust_table +
+             create_order_table +
+             create_dish_table +
+             create_customer_orders_table +
+             create_dishes_in_order_table +
+             create_likes_table +
+             create_view_orders_total_price)
+    connection.execute(query)
     connection.close()
 
 
@@ -88,15 +91,22 @@ def clear_tables() -> None:
 
 def drop_tables() -> None:
     connection = Connector.DBConnector()
-    drop_likes = "drop table likes;"
-    drop_dishes_in_order = "drop table dishes_in_order;"
-    drop_customer_orders = "drop table customer_orders;"
+    drop_orders_view = "drop view orders_total_price; "
+    drop_likes = "drop table likes; "
+    drop_dishes_in_order = "drop table dishes_in_order; "
+    drop_customer_orders = "drop table customer_orders; "
     drop_customer = "drop table customer; "
     drop_order = "drop table \"order\"; "
     drop_dish = "drop table dish;"
-    queries = [drop_customer_orders, drop_dishes_in_order, drop_likes, drop_customer, drop_order, drop_dish]
-    for query in queries:
-        connection.execute(query)
+    query = (drop_orders_view
+             + drop_customer_orders
+             + drop_dishes_in_order
+             + drop_likes
+             + drop_customer
+             + drop_order
+             + drop_dish)
+
+    connection.execute(query)
     connection.close()
 
 
@@ -145,7 +155,9 @@ def delete_customer(customer_id: int) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = "DELETE FROM customer where cust_id= " + customer_id.__str__() + ";"
+        query = ("delete from customer_orders where cust_id = " + customer_id.__str__() + "; "
+                 "delete from likes where cust_id = " + customer_id.__str__() + "; "                          
+                 "DELETE FROM customer where cust_id= ") + customer_id.__str__() + ";"
         rows_effected, _ = connection.execute(query)
         if rows_effected == 0:
             connection.close()
@@ -212,10 +224,11 @@ def get_order(order_id: int) -> Order:
 
 
 def delete_order(order_id: int) -> ReturnValue:
-    connection = None
     try:
         connection = Connector.DBConnector()
-        query = "DELETE FROM \"order\" where order_id= " + order_id.__str__() + ";"
+        query = ("delete from customer_orders where order_id = " + order_id.__str__() + ";"
+                 " delete from dishes_in_order where order_id = " + order_id.__str__() + ";"
+                 " DELETE FROM \"order\" where order_id= " + order_id.__str__() + ";")
         rows_effected, _ = connection.execute(query)
         if rows_effected == 0:
             connection.close()
@@ -269,7 +282,9 @@ def update_dish_price(dish_id: int, price: float) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = "update dish set price = " + price.__str__() + " where dish_id = " + dish_id.__str__() + ";"
+        query = (("update dish "
+                 "set price = ") + price.__str__()
+                 + " where dish_id = " + dish_id.__str__() + " and is_active = true;")
         rows_affected, _ = connection.execute(query)
         if rows_affected == 0:
             connection.close()
@@ -450,32 +465,43 @@ def get_all_customer_likes(cust_id: int) -> List[Dish]:
 
 
 def get_order_total_price(order_id: int) -> float:
-    # TODO: implement
-    pass
+    try:
+        connection = Connector.DBConnector()
+        query = "select order_price from orders_total_price where order_id = " + order_id.__str__() + ";"
+        _, result = connection.execute(query)
+    except DatabaseException.ConnectionInvalid:
+        return -1
+    if result.size() == 0:
+        return float(0)
+    return float(result[0]['order_price'])
 
 
 def get_max_amount_of_money_cust_spent(cust_id: int) -> float:
-    # TODO: implement
-    pass
+    try:
+        connection = Connector.DBConnector()
+        query = ("select max(order_price) max_price "
+                 "from orders_total_price otp "
+                 "join customer_orders co on co.order_id = otp.order_id "
+                 "where co.cust_id = " + cust_id.__str__() + ";")
+        _, result = connection.execute(query)
+    except DatabaseException.ConnectionInvalid:
+        return float(0)
+    price = result[0]['max_price']
+    return float(0 if price is None else price)
 
 
 def get_most_expensive_anonymous_order() -> Order:
     try:
         connection = Connector.DBConnector()
-        query = ("select tbl.order_id, o.date "
-                 "from ("
-                 "select sum(price), dio.order_id "
-                 "from dish d "
-                 "join dishes_in_order dio on dio.order_id = d.dish_id "
-                 "join customer_orders co on co.order_id = dio.order_id "
-                 "where not exists (select 1 from customer c where c.cust_id = co.cust_id) "
-                 "group by dio.order_id "
-                 "order by 1 desc, 2 limit 1);"
-                 ") tbl "
-                 "join \"order\" o on o.order_id = tbl.order_id;")
+        query = ("select coalesce(max(otp.order_price),0) max_price, o.order_id, o.date "
+                 "from \"order\" o "
+                 "left join orders_total_price otp on o.order_id = otp.order_id "
+                 "where not exists (select 1 from customer_orders co where co.order_id = o.order_id) "
+                 "group by o.order_id, o.date "
+                 "order by max_price desc limit 1")
         _, result = connection.execute(query)
         connection.close()
-        return Order(result['order_id'], result['date'])
+        return Order(result['order_id'][0], result['date'][0])
     except DatabaseException.ConnectionInvalid:
         return BadOrder()
 
