@@ -22,22 +22,22 @@ def create_tables() -> None:
                          "full_name text not null, "
                          "phone text not null, "
                          "address text not null check (length(address) > 2), "
-                         "primary key (cust_id),"
-                         "unique (cust_id)); ")
+                         "primary key (cust_id)"
+                         "); ")
 
     create_order_table = ("create table \"order\""
                           "(order_id integer not null check (order_id > 0),"
                           "date timestamp not null,"
-                          "primary key (order_id),"
-                          "unique (order_id)); ")
+                          "primary key (order_id)"
+                          "); ")
 
     create_dish_table = ("create table dish "
                          "(dish_id integer not null check (dish_id>0),"
                          "name text not null check (length(name) > 2),"
                          "price decimal not null check (price>0),"
                          "is_active boolean,"
-                         "primary key (dish_id),"
-                         "unique (dish_id)); ")
+                         "primary key (dish_id)"
+                         "); ")
 
     create_customer_orders_table = ("create table customer_orders "
                                     "(cust_id integer,"
