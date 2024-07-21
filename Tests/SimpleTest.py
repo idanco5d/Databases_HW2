@@ -637,6 +637,17 @@ class Test(AbstractTest):
         self.assertEqual(ReturnValue.OK, Solution.delete_order(order.get_order_id()))
         self.assertEqual(ReturnValue.OK, Solution.delete_customer(customer.get_cust_id()))
 
+    def test_is_most_liked_dish_equal_to_most_purchased(self):
+        customer = createCustomer()
+        order = createOrder()
+        dish = createDish()
+        self.assertEqual(ReturnValue.OK, Solution.add_customer(customer))
+        self.assertEqual(ReturnValue.OK, Solution.add_dish(dish))
+        self.assertEqual(ReturnValue.OK, Solution.add_order(order))
+        self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order.get_order_id(), dish.get_dish_id(), 1))
+        self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer.get_cust_id(), dish.get_dish_id()))
+        self.assertEqual(True, Solution.is_most_liked_dish_equal_to_most_purchased())
+
 
 # *** DO NOT RUN EACH TEST MANUALLY ***
 if __name__ == '__main__':

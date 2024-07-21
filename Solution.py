@@ -438,6 +438,7 @@ def customer_dislike_dish(cust_id: int, dish_id: int) -> ReturnValue:
                  "where cust_id = " + cust_id.__str__() +
                  " and dish_id = " + dish_id.__str__() + ";")
         rows_affected, _ = connection.execute(query)
+        connection.close()
         if rows_affected == 0:
             return ReturnValue.NOT_EXISTS
     except DatabaseException.ConnectionInvalid:
@@ -454,6 +455,7 @@ def get_all_customer_likes(cust_id: int) -> List[Dish]:
                  "where l.cust_id = " + cust_id.__str__() + ";")
         _, result = connection.execute(query)
         dishes = [Dish(dish['dish_id'], dish['name'], dish['price'], dish['is_active']) for dish in result]
+        connection.close()
     except DatabaseException.ConnectionInvalid:
         return []
     return dishes
@@ -469,6 +471,7 @@ def get_order_total_price(order_id: int) -> float:
         connection = Connector.DBConnector()
         query = "select order_price from orders_total_price where order_id = " + order_id.__str__() + ";"
         _, result = connection.execute(query)
+        connection.close()
     except DatabaseException.ConnectionInvalid:
         return -1
     if result.size() == 0:
@@ -484,6 +487,7 @@ def get_max_amount_of_money_cust_spent(cust_id: int) -> float:
                  "join customer_orders co on co.order_id = otp.order_id "
                  "where co.cust_id = " + cust_id.__str__() + ";")
         _, result = connection.execute(query)
+        connection.close()
     except DatabaseException.ConnectionInvalid:
         return float(0)
     price = result[0]['max_price']
@@ -507,8 +511,16 @@ def get_most_expensive_anonymous_order() -> Order:
 
 
 def is_most_liked_dish_equal_to_most_purchased() -> bool:
-    query = ""
-    pass
+    try:
+        connection = Connector.DBConnector()
+        query = sql.SQL(" select dish_like.dish_id = dish_purchased.dish_id bool_dish from (select dish_id,count (*) from likes group by dish_id order by count (*) desc ,dish_id limit 1 ) dish_like,"
+                       "(select dish_id, sum(amount) from dishes_in_order group by dish_id order by sum(amount) desc ,dish_id limit 1 ) dish_purchased ")
+        _, result = connection.execute(query)
+        connection.close()
+        return result["bool_dish"][0]
+    except DatabaseException.ConnectionInvalid:
+        return False
+
 
 
 # ---------------------------------- ADVANCED API: ----------------------------------
