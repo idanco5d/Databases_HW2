@@ -16,96 +16,81 @@ from Business.OrderDish import OrderDish
 
 def create_tables() -> None:
     connection = Connector.DBConnector()
+    query = sql.SQL("""create table customer (
+                        cust_id integer not null check (cust_id > 0), 
+                        full_name text not null, 
+                        phone text not null, 
+                        address text not null check (length(address) > 2), 
+                        primary key (cust_id)
+                        ); 
+                        create table \"order\" (
+                        order_id integer not null check (order_id > 0),
+                        date timestamp not null,
+                        primary key (order_id)
+                        );
+                        create table dish (
+                        dish_id integer not null check (dish_id>0),
+                        name text not null check (length(name) > 2),
+                        price decimal not null check (price>0),
+                        is_active boolean,
+                        primary key (dish_id)
+                        );
+                        create table customer_orders (
+                        cust_id integer,
+                        order_id integer,
+                        foreign key (cust_id) references customer(cust_id),
+                        foreign key (order_id) references \"order\"(order_id),
+                        primary key (order_id)
+                        );
+                        create table dishes_in_order (
+                        dish_id integer,
+                        order_id integer,
+                        amount integer not null check (amount>0),
+                        dish_price decimal not null,
+                        foreign key (dish_id) references dish(dish_id),
+                        foreign key (order_id) references \"order\"(order_id),
+                        primary key (dish_id, order_id)
+                        );
+                        create table likes (
+                        cust_id integer,
+                        dish_id integer,
+                        foreign key (cust_id) references customer(cust_id),
+                        foreign key (dish_id) references dish(dish_id),
+                        primary key (dish_id, cust_id)
+                        );
+                        create view orders_total_price as 
+                        select sum(amount * dish_price) as order_price, dio.order_id 
+                        from dishes_in_order dio 
+                        group by dio.order_id;
+                         """)
 
-    create_cust_table = ("create table customer "
-                         "(cust_id integer not null check (cust_id > 0), "
-                         "full_name text not null, "
-                         "phone text not null, "
-                         "address text not null check (length(address) > 2), "
-                         "primary key (cust_id)"
-                         "); ")
-
-    create_order_table = ("create table \"order\""
-                          "(order_id integer not null check (order_id > 0),"
-                          "date timestamp not null,"
-                          "primary key (order_id)"
-                          "); ")
-
-    create_dish_table = ("create table dish "
-                         "(dish_id integer not null check (dish_id>0),"
-                         "name text not null check (length(name) > 2),"
-                         "price decimal not null check (price>0),"
-                         "is_active boolean,"
-                         "primary key (dish_id)"
-                         "); ")
-
-    create_customer_orders_table = ("create table customer_orders "
-                                    "(cust_id integer,"
-                                    "order_id integer,"
-                                    "foreign key (cust_id) references customer(cust_id),"
-                                    "foreign key (order_id) references \"order\"(order_id),"
-                                    "primary key (order_id)); ")
-
-    create_dishes_in_order_table = ("create table dishes_in_order "
-                                    "(dish_id integer,"
-                                    "order_id integer,"
-                                    "amount integer not null check (amount>0),"
-                                    "dish_price decimal not null,"
-                                    "foreign key (dish_id) references dish(dish_id),"
-                                    "foreign key (order_id) references \"order\"(order_id),"
-                                    "primary key (dish_id, order_id)); ")
-
-    create_likes_table = ("create table likes "
-                          "(cust_id integer,"
-                          "dish_id integer,"
-                          "foreign key (cust_id) references customer(cust_id),"
-                          "foreign key (dish_id) references dish(dish_id),"
-                          "primary key (dish_id, cust_id));")
-
-    create_view_orders_total_price = ("create view orders_total_price as "
-                                      "(select sum(amount * dish_price) as order_price, dio.order_id "
-                                      "from dishes_in_order dio "
-                                      "group by dio.order_id);")
-    query = (create_cust_table +
-             create_order_table +
-             create_dish_table +
-             create_customer_orders_table +
-             create_dishes_in_order_table +
-             create_likes_table +
-             create_view_orders_total_price)
     connection.execute(query)
     connection.close()
 
 
 def clear_tables() -> None:
     connection = Connector.DBConnector()
-    query = ("delete from likes; "
-             "delete from dishes_in_order; "
-             "delete from customer_orders; "
-             "delete from customer; "
-             "delete from \"order\"; "
-             "delete from dish;")
+    query = sql.SQL("""delete from likes; 
+             delete from dishes_in_order; 
+             delete from customer_orders; 
+             delete from customer; 
+             delete from \"order\"; 
+             delete from dish;""")
     connection.execute(query)
     connection.close()
 
 
 def drop_tables() -> None:
     connection = Connector.DBConnector()
-    drop_orders_view = "drop view orders_total_price; "
-    drop_likes = "drop table likes; "
-    drop_dishes_in_order = "drop table dishes_in_order; "
-    drop_customer_orders = "drop table customer_orders; "
-    drop_customer = "drop table customer; "
-    drop_order = "drop table \"order\"; "
-    drop_dish = "drop table dish;"
-    query = (drop_orders_view
-             + drop_customer_orders
-             + drop_dishes_in_order
-             + drop_likes
-             + drop_customer
-             + drop_order
-             + drop_dish)
-
+    query = sql.SQL("""
+                        drop view orders_total_price;
+                        drop table likes;
+                        drop table dishes_in_order;
+                        drop table customer_orders;
+                        drop table customer;
+                        drop table \"order\";
+                        drop table dish;
+                        """)
     connection.execute(query)
     connection.close()
 
@@ -113,14 +98,19 @@ def drop_tables() -> None:
 # CRUD API
 
 def add_customer(customer: Customer) -> ReturnValue:
-    if has_field_as_null(customer):
-        return ReturnValue.BAD_PARAMS
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = ("insert into customer values (" + customer.get_cust_id().__str__() + ", '" + customer.get_full_name()
-                 + "', '" + customer.get_phone() + "', '" + customer.get_address() + "');")
+        query = sql.SQL("""
+                        insert into customer values({cust_id}, {cust_fullname}, {cust_phone}, {cust_adress});
+                        """).format(cust_id=sql.Literal(customer.get_cust_id()),
+                                    cust_fullname=sql.Literal(customer.get_full_name()),
+                                    cust_phone=sql.Literal(customer.get_phone()),
+                                    cust_adress=sql.Literal(customer.get_address()))
         connection.execute(query)
+    except DatabaseException.NOT_NULL_VIOLATION as e:
+        #print(e)#have to print???
+        return ReturnValue.BAD_PARAMS
     except DatabaseException.CHECK_VIOLATION:
         connection.close()
         return ReturnValue.BAD_PARAMS
@@ -138,7 +128,10 @@ def get_customer(customer_id: int) -> Customer:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = "select * from customer where cust_id = " + customer_id.__str__() + ";"
+        query = sql.SQL("""
+                        select * from customer where cust_id = {cust};
+                        """).format(cust=sql.Literal(customer_id))
+
         _, result = connection.execute(query)
         if result.size() == 0:
             customer = BadCustomer()
@@ -155,9 +148,11 @@ def delete_customer(customer_id: int) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = ("delete from customer_orders where cust_id = " + customer_id.__str__() + "; "
-                 "delete from likes where cust_id = " + customer_id.__str__() + "; "                          
-                 "DELETE FROM customer where cust_id= ") + customer_id.__str__() + ";"
+        query = sql.SQL("""
+                        delete from customer_orders where cust_id = {cust};
+                        delete from likes where cust_id = {cust};
+                        delete from customer where cust_id= {cust};
+                        """).format(cust=sql.Literal(customer_id))
         rows_effected, _ = connection.execute(query)
         if rows_effected == 0:
             connection.close()
@@ -176,17 +171,10 @@ def add_order(order: Order) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
         orderDate = order.get_datetime()
-        query = (
-                    "insert into \"order\" "
-                    "values ("
-                    + order.get_order_id().__str__()
-                    + ", '" + orderDate.year.__str__()
-                    + "-" + orderDate.month.__str__()
-                    + "-" + orderDate.day.__str__()
-                    + " " + orderDate.hour.__str__()
-                    + ":" + orderDate.minute.__str__()
-                    + ":" + orderDate.second.__str__()
-                    + "');")
+        query = sql.SQL("""
+                        insert into \"order\" values({orderID}, {date_});
+                        """).format(orderID=sql.Literal(order.get_order_id()),
+                                    date_=sql.Literal(orderDate.strftime('%Y-%m-%d %H:%M:%S')))
         connection.execute(query)
 
     except DatabaseException.NOT_NULL_VIOLATION:
@@ -210,7 +198,9 @@ def add_order(order: Order) -> ReturnValue:
 def get_order(order_id: int) -> Order:
     try:
         connection = Connector.DBConnector()
-        query = "select * from \"order\" where order_id = " + order_id.__str__() + ";"
+        query = sql.SQL("""
+                        select * from \"order\" where order_id = {orderID};
+                        """).format(orderID=sql.Literal(order_id))
         _, result = connection.execute(query)
         if result.size() == 0:
             order = BadOrder()
@@ -226,9 +216,12 @@ def get_order(order_id: int) -> Order:
 def delete_order(order_id: int) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
-        query = ("delete from customer_orders where order_id = " + order_id.__str__() + ";"
-                 " delete from dishes_in_order where order_id = " + order_id.__str__() + ";"
-                 " DELETE FROM \"order\" where order_id= " + order_id.__str__() + ";")
+        query = sql.SQL("""
+                        delete from customer_orders where order_id = {order_};
+                        delete from dishes_in_order where order_id = {order_};
+                        DELETE FROM \"order\" where order_id = {order_};
+                        """).format(order_=sql.Literal(order_id))
+
         rows_effected, _ = connection.execute(query)
         if rows_effected == 0:
             connection.close()
@@ -241,14 +234,18 @@ def delete_order(order_id: int) -> ReturnValue:
 
 
 def add_dish(dish: Dish) -> ReturnValue:
-    if has_field_as_null(dish):
+    if has_field_as_null(dish):#to check defintion in create table
         return ReturnValue.BAD_PARAMS
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = (
-                "insert into dish values (" + dish.get_dish_id().__str__() + ", '" + dish.get_name() + "', " + dish.get_price().__str__() + ", " + dish.get_is_active().__str__() + ");"
-        )
+        query = sql.SQL("""
+                        insert into dish values({dishid_}, {name_}, {price_}, {active_});
+                        """).format(dishid_=sql.Literal(dish.get_dish_id()),
+                                    name_=sql.Literal(dish.get_name()),
+                                    price_=sql.Literal(dish.get_price()),
+                                    active_=sql.Literal(dish.get_is_active()))
+
         connection.execute(query)
     except DatabaseException.CHECK_VIOLATION as e:
         connection.close()
@@ -265,7 +262,9 @@ def add_dish(dish: Dish) -> ReturnValue:
 def get_dish(dish_id: int) -> Dish:
     try:
         connection = Connector.DBConnector()
-        query = "select * from dish where dish_id = " + dish_id.__str__() + ";"
+        query = sql.SQL("""
+                          select * from dish where dish_id = {dish_id};
+                          """).format(dish_id=sql.Literal(dish_id))
         _, result = connection.execute(query)
         if result.size() == 0:
             dish = BadDish()
@@ -282,9 +281,12 @@ def update_dish_price(dish_id: int, price: float) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = (("update dish "
-                 "set price = ") + price.__str__()
-                 + " where dish_id = " + dish_id.__str__() + " and is_active = true;")
+        query = sql.SQL("""
+                        update dish 
+                        set price= {price_}
+                        where dish_id = {dish_} and is_active = true;
+                        """).format(price_=sql.Literal(price),
+                                    dish_=sql.Literal(dish_id))
         rows_affected, _ = connection.execute(query)
         if rows_affected == 0:
             connection.close()
@@ -302,7 +304,13 @@ def update_dish_active_status(dish_id: int, is_active: bool) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = "update dish set is_active = " + is_active.__str__() + " where dish_id = " + dish_id.__str__() + ";"
+        query = sql.SQL("""
+                               update dish 
+                               set is_active= {active_}
+                               where dish_id = {dish_};
+                               """).format(active_=sql.Literal(is_active),
+                                           dish_=sql.Literal(dish_id))
+
         rows_affected, _ = connection.execute(query)
         if rows_affected == 0:
             connection.close()
@@ -321,7 +329,10 @@ def customer_placed_order(customer_id: int, order_id: int) -> ReturnValue:
 
     try:
         connection = Connector.DBConnector()
-        query = ("insert into customer_orders values (" + customer_id.__str__() + ", '" + order_id.__str__() + "');")
+        query = sql.SQL("""
+                        insert into customer_orders values({cust_id}, {ord_id});
+                        """).format(cust_id=sql.Literal(customer_id),
+                                    ord_id=sql.Literal(order_id))
         connection.execute(query)
 
     except DatabaseException.FOREIGN_KEY_VIOLATION:
@@ -339,9 +350,12 @@ def customer_placed_order(customer_id: int, order_id: int) -> ReturnValue:
 def get_customer_that_placed_order(order_id: int) -> Customer:
     try:
         connection = Connector.DBConnector()
-        query = "select c.* from customer_orders co " \
-                "join customer c on c.cust_id = co.cust_id " \
-                "where order_id = " + order_id.__str__() + ";"
+        query = sql.SQL("""
+                         select c.* from customer_orders co 
+                         join customer c on c.cust_id = co.cust_id
+                         where order_id= {order_};
+                          """).format(order_=sql.Literal(order_id))
+
         _, result = connection.execute(query)
         if result.size() == 0:
             customer = BadCustomer()
@@ -357,16 +371,15 @@ def order_contains_dish(order_id: int, dish_id: int, amount: int) -> ReturnValue
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = ("insert into dishes_in_order "
-                 "values ("
-                 + dish_id.__str__() + ", "
-                 + order_id.__str__() + ", "
-                 + amount.__str__()
-                 + ", (select price "
-                   "from dish "
-                   "where dish_id = " + dish_id.__str__()
-                 + " and is_active = true"
-                   "));")
+        query = sql.SQL("""
+                        insert into dishes_in_order values({dishid_}, {ord_id}, {amount_},
+                        (select price
+                        from dish
+                        where dish_id={dishid_} and is_active = true));
+                        """).format(dishid_=sql.Literal(dish_id),
+                                    ord_id=sql.Literal(order_id),
+                                    amount_=sql.Literal(amount))
+
         connection.execute(query)
     except DatabaseException.FOREIGN_KEY_VIOLATION:
         connection.close()
@@ -389,7 +402,10 @@ def order_contains_dish(order_id: int, dish_id: int, amount: int) -> ReturnValue
 def order_does_not_contain_dish(order_id: int, dish_id: int) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
-        query = "DELETE FROM dishes_in_order where order_id= " + order_id.__str__() + " AND dish_id= " + dish_id.__str__() + ";"
+        query = sql.SQL("""
+                        delete from dishes_in_order where order_id = {order_} and dish_id= {dishid_};
+                        """).format(order_=sql.Literal(order_id),
+                                    dishid_=sql.Literal(dish_id))
         row_effected, _ = connection.execute(query)
         if row_effected == 0:
             return ReturnValue.NOT_EXISTS
@@ -402,10 +418,13 @@ def order_does_not_contain_dish(order_id: int, dish_id: int) -> ReturnValue:
 def get_all_order_items(order_id: int) -> List[OrderDish]:
     try:
         connection = Connector.DBConnector()
-        query = ("select dish_id, dish_price, amount "
-                 "from dishes_in_order "
-                 "where order_id = " + order_id.__str__() +
-                 " order by dish_id;")
+        query = sql.SQL("""
+                         select  dish_id, dish_price, amount
+                         from dishes_in_order 
+                         where order_id= {order_}
+                         order by dish_id;
+                          """).format(order_=sql.Literal(order_id))
+
         _, result = connection.execute(query)
         orders_dishes = [
             OrderDish(order_dish['dish_id'], order_dish['amount'], order_dish['dish_price']) for order_dish in result
@@ -420,7 +439,10 @@ def customer_likes_dish(cust_id: int, dish_id: int) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = ("insert into likes values(" + cust_id.__str__() + ", '" + dish_id.__str__() + "');")
+        query = sql.SQL("""
+                        insert into likes values({cust_id}, {dish_id_});
+                        """).format(cust_id=sql.Literal(cust_id),
+                                    dish_id_=sql.Literal(dish_id))
         connection.execute(query)
     except DatabaseException.UNIQUE_VIOLATION:
         connection.close()
@@ -434,9 +456,12 @@ def customer_likes_dish(cust_id: int, dish_id: int) -> ReturnValue:
 def customer_dislike_dish(cust_id: int, dish_id: int) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
-        query = ("delete from likes "
-                 "where cust_id = " + cust_id.__str__() +
-                 " and dish_id = " + dish_id.__str__() + ";")
+        query = sql.SQL("""
+                        delete from likes 
+                        where cust_id = {cust_} and dish_id= {dishid_};
+                        """).format(cust_=sql.Literal(cust_id),
+                                    dishid_=sql.Literal(dish_id))
+
         rows_affected, _ = connection.execute(query)
         connection.close()
         if rows_affected == 0:
@@ -449,10 +474,12 @@ def customer_dislike_dish(cust_id: int, dish_id: int) -> ReturnValue:
 def get_all_customer_likes(cust_id: int) -> List[Dish]:
     try:
         connection = Connector.DBConnector()
-        query = ("select d.dish_id, d.name, d.price, d.is_active "
-                 "from dish d "
-                 "join likes l on l.dish_id = d.dish_id "
-                 "where l.cust_id = " + cust_id.__str__() + ";")
+        query = sql.SQL("""
+                         select  d.dish_id, d.name, d.price, d.is_active
+                         from dish d 
+                         join likes l on l.dish_id = d.dish_id
+                         where l.cust_id= {cust_};
+                          """).format(cust_=sql.Literal(cust_id))
         _, result = connection.execute(query)
         dishes = [Dish(dish['dish_id'], dish['name'], dish['price'], dish['is_active']) for dish in result]
         connection.close()
@@ -469,7 +496,11 @@ def get_all_customer_likes(cust_id: int) -> List[Dish]:
 def get_order_total_price(order_id: int) -> float:
     try:
         connection = Connector.DBConnector()
-        query = "select order_price from orders_total_price where order_id = " + order_id.__str__() + ";"
+        query = sql.SQL("""
+                         select  order_price
+                         from orders_total_price 
+                         where order_id= {ord_id};
+                          """).format(ord_id=sql.Literal(order_id))
         _, result = connection.execute(query)
         connection.close()
     except DatabaseException.ConnectionInvalid:
@@ -482,10 +513,12 @@ def get_order_total_price(order_id: int) -> float:
 def get_max_amount_of_money_cust_spent(cust_id: int) -> float:
     try:
         connection = Connector.DBConnector()
-        query = ("select max(order_price) max_price "
-                 "from orders_total_price otp "
-                 "join customer_orders co on co.order_id = otp.order_id "
-                 "where co.cust_id = " + cust_id.__str__() + ";")
+        query = sql.SQL("""
+                         select  max(order_price) max_price
+                         from orders_total_price otp 
+                         join customer_orders co on co.order_id = otp.order_id
+                         where co.cust_id= {cust_};
+                          """).format(cust_=sql.Literal(cust_id))
         _, result = connection.execute(query)
         connection.close()
     except DatabaseException.ConnectionInvalid:
@@ -497,12 +530,15 @@ def get_max_amount_of_money_cust_spent(cust_id: int) -> float:
 def get_most_expensive_anonymous_order() -> Order:
     try:
         connection = Connector.DBConnector()
-        query = ("select coalesce(max(otp.order_price),0) max_price, o.order_id, o.date "
-                 "from \"order\" o "
-                 "left join orders_total_price otp on o.order_id = otp.order_id "
-                 "where not exists (select 1 from customer_orders co where co.order_id = o.order_id) "
-                 "group by o.order_id, o.date "
-                 "order by max_price desc limit 1")
+        query = sql.SQL("""
+                         select  coalesce(max(otp.order_price),0) max_price, o.order_id, o.date
+                         from \"order\" o 
+                         left join orders_total_price otp on o.order_id = otp.order_id
+                         where not exists (select 1 from customer_orders co where co.order_id = o.order_id)
+                         group by o.order_id, o.date
+                         order by max_price desc limit 1;
+                          """)
+
         _, result = connection.execute(query)
         connection.close()
         return Order(result['order_id'][0], result['date'][0])
@@ -513,14 +549,21 @@ def get_most_expensive_anonymous_order() -> Order:
 def is_most_liked_dish_equal_to_most_purchased() -> bool:
     try:
         connection = Connector.DBConnector()
-        query = sql.SQL(" select dish_like.dish_id = dish_purchased.dish_id bool_dish from (select dish_id,count (*) from likes group by dish_id order by count (*) desc ,dish_id limit 1 ) dish_like,"
-                       "(select dish_id, sum(amount) from dishes_in_order group by dish_id order by sum(amount) desc ,dish_id limit 1 ) dish_purchased ")
+        query = sql.SQL("""
+                select dish_like.dish_id = dish_purch.dish_id bool_dish 
+                from (select dish_id,count (*) 
+                      from likes 
+                      group by dish_id 
+                      order by count (*) desc ,dish_id limit 1 ) dish_like, (select dish_id, sum(amount) 
+                                                                             from dishes_in_order 
+                                                                             group by dish_id 
+                                                                             order by sum(amount) desc ,dish_id limit 1 ) dish_purch;
+                    """)
         _, result = connection.execute(query)
         connection.close()
         return result["bool_dish"][0]
     except DatabaseException.ConnectionInvalid:
         return False
-
 
 
 # ---------------------------------- ADVANCED API: ----------------------------------
