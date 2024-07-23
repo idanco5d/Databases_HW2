@@ -194,12 +194,12 @@ class Test(AbstractTest):
         o4 = Order(4, datetime(2024, 7, 19, 14, 0, 0)) # will be anonymous order
         c2 = Customer (2,'newname',"052222222","TelAviv")
         c1 = Customer(1, 'name', "0502220000", "Haifa")
-        #self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
+        self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
         self.assertEqual(ReturnValue.OK, Solution.add_order(o1), 'regular order')
         self.assertEqual(ReturnValue.OK, Solution.add_order(o2), 'regular order')
         self.assertEqual(ReturnValue.OK, Solution.add_order(o3), 'regular order')
         self.assertEqual(ReturnValue.OK, Solution.add_order(o4), 'regular order')
-       #self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
+        self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
         self.assertEqual(ReturnValue.OK, Solution.add_dish(d1), 'regular dish')
         self.assertEqual(ReturnValue.OK, Solution.add_dish(d2), 'regular dish')
         self.assertEqual(ReturnValue.OK, Solution.add_dish(d3), 'regular dish')
@@ -207,7 +207,7 @@ class Test(AbstractTest):
         self.assertEqual(ReturnValue.OK, Solution.add_dish(d5), 'regular dish')
         self.assertEqual(ReturnValue.OK, Solution.add_customer(c1), 'regular customer')
         self.assertEqual(ReturnValue.OK, Solution.add_customer(c2), 'regular customer')
-        #self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
+        self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
         self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(1,1,2), 'contain dish')
         self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(1,2,2), 'contain dish')
         self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(1,3,2), 'contain dish')
@@ -240,15 +240,15 @@ class Test(AbstractTest):
         self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(1,1,2), 'contain dish')
 
         ## the following section will test is_most_liked_dish_equal_to_most_purchased
-        #self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
+        self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
         self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(1,1), 'regular like')
         self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(1,2), 'regular like')
         self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(2,1), 'regular like')
-        #self.assertEqual(True, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
+        self.assertEqual(True, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
         self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(2,2), 'regular like')
-        #self.assertEqual(True, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
+        self.assertEqual(True, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
         self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(3, 2, 20), 'contain dish')
-        #self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
+        self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased(), ' liked most purchased')
 
 
 

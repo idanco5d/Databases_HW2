@@ -25,21 +25,21 @@ def create_tables() -> None:
                         ); 
                         create table \"order\" (
                         order_id integer not null check (order_id > 0),
-                        date timestamp not null,
+                        date timestamp(0) not null,
                         primary key (order_id)
                         );
                         create table dish (
                         dish_id integer not null check (dish_id>0),
                         name text not null check (length(name) > 2),
                         price decimal not null check (price>0),
-                        is_active boolean,
+                        is_active boolean not null,
                         primary key (dish_id)
                         );
                         create table customer_orders (
                         cust_id integer,
                         order_id integer,
-                        foreign key (cust_id) references customer(cust_id),
-                        foreign key (order_id) references \"order\"(order_id),
+                        foreign key (cust_id) references customer(cust_id) on delete cascade,
+                        foreign key (order_id) references \"order\"(order_id) on delete cascade,
                         primary key (order_id)
                         );
                         create table dishes_in_order (
@@ -47,15 +47,15 @@ def create_tables() -> None:
                         order_id integer,
                         amount integer not null check (amount>0),
                         dish_price decimal not null,
-                        foreign key (dish_id) references dish(dish_id),
-                        foreign key (order_id) references \"order\"(order_id),
+                        foreign key (dish_id) references dish(dish_id) on delete cascade,
+                        foreign key (order_id) references \"order\"(order_id) on delete cascade,
                         primary key (dish_id, order_id)
                         );
                         create table likes (
                         cust_id integer,
                         dish_id integer,
-                        foreign key (cust_id) references customer(cust_id),
-                        foreign key (dish_id) references dish(dish_id),
+                        foreign key (cust_id) references customer(cust_id) on delete cascade,
+                        foreign key (dish_id) references dish(dish_id) on delete cascade,
                         primary key (dish_id, cust_id)
                         );
                         create view orders_total_price as 
@@ -101,15 +101,17 @@ def add_customer(customer: Customer) -> ReturnValue:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = sql.SQL("""
-                        insert into customer values({cust_id}, {cust_fullname}, {cust_phone}, {cust_adress});
-                        """).format(cust_id=sql.Literal(customer.get_cust_id()),
-                                    cust_fullname=sql.Literal(customer.get_full_name()),
-                                    cust_phone=sql.Literal(customer.get_phone()),
-                                    cust_adress=sql.Literal(customer.get_address()))
+        query = sql.SQL(
+            """insert into customer values({cust_id}, {cust_fullname}, {cust_phone}, {cust_adress});"""
+        ).format(
+            cust_id=sql.Literal(customer.get_cust_id()),
+            cust_fullname=sql.Literal(customer.get_full_name()),
+            cust_phone=sql.Literal(customer.get_phone()),
+            cust_adress=sql.Literal(customer.get_address())
+        )
         connection.execute(query)
-    except DatabaseException.NOT_NULL_VIOLATION as e:
-        #print(e)#have to print???
+        connection.close()
+    except DatabaseException.NOT_NULL_VIOLATION:
         return ReturnValue.BAD_PARAMS
     except DatabaseException.CHECK_VIOLATION:
         connection.close()
@@ -120,7 +122,6 @@ def add_customer(customer: Customer) -> ReturnValue:
     except DatabaseException.ConnectionInvalid:
         connection.close()
         return ReturnValue.ERROR
-    connection.close()
     return ReturnValue.OK
 
 
@@ -128,9 +129,9 @@ def get_customer(customer_id: int) -> Customer:
     connection = None
     try:
         connection = Connector.DBConnector()
-        query = sql.SQL("""
-                        select * from customer where cust_id = {cust};
-                        """).format(cust=sql.Literal(customer_id))
+        query = sql.SQL(
+            """select * from customer where cust_id = {cust};"""
+        ).format(cust=sql.Literal(customer_id))
 
         _, result = connection.execute(query)
         if result.size() == 0:
@@ -149,13 +150,13 @@ def delete_customer(customer_id: int) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
         query = sql.SQL("""
-                        delete from customer_orders where cust_id = {cust};
-                        delete from likes where cust_id = {cust};
                         delete from customer where cust_id= {cust};
                         """).format(cust=sql.Literal(customer_id))
+
         rows_effected, _ = connection.execute(query)
+        connection.close()
+
         if rows_effected == 0:
-            connection.close()
             return ReturnValue.NOT_EXISTS
 
     except DatabaseException.ConnectionInvalid:
@@ -165,16 +166,15 @@ def delete_customer(customer_id: int) -> ReturnValue:
 
 
 def add_order(order: Order) -> ReturnValue:
-    if has_field_as_null(order):
-        return ReturnValue.BAD_PARAMS
     connection = None
     try:
         connection = Connector.DBConnector()
-        orderDate = order.get_datetime()
-        query = sql.SQL("""
-                        insert into \"order\" values({orderID}, {date_});
-                        """).format(orderID=sql.Literal(order.get_order_id()),
-                                    date_=sql.Literal(orderDate.strftime('%Y-%m-%d %H:%M:%S')))
+        query = sql.SQL(
+            """insert into \"order\" values({orderID}, {date_});"""
+        ).format(
+            orderID=sql.Literal(order.get_order_id()),
+            date_=sql.Literal(order.get_datetime())
+        )
         connection.execute(query)
 
     except DatabaseException.NOT_NULL_VIOLATION:
@@ -217,25 +217,20 @@ def delete_order(order_id: int) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
         query = sql.SQL("""
-                        delete from customer_orders where order_id = {order_};
-                        delete from dishes_in_order where order_id = {order_};
                         DELETE FROM \"order\" where order_id = {order_};
                         """).format(order_=sql.Literal(order_id))
 
         rows_effected, _ = connection.execute(query)
+        connection.close()
         if rows_effected == 0:
-            connection.close()
             return ReturnValue.NOT_EXISTS
 
     except DatabaseException.ConnectionInvalid:
         return ReturnValue.ERROR
-    connection.close()
     return ReturnValue.OK
 
 
 def add_dish(dish: Dish) -> ReturnValue:
-    if has_field_as_null(dish):#to check defintion in create table
-        return ReturnValue.BAD_PARAMS
     connection = None
     try:
         connection = Connector.DBConnector()
@@ -247,13 +242,16 @@ def add_dish(dish: Dish) -> ReturnValue:
                                     active_=sql.Literal(dish.get_is_active()))
 
         connection.execute(query)
-    except DatabaseException.CHECK_VIOLATION as e:
+    except DatabaseException.CHECK_VIOLATION:
         connection.close()
         return ReturnValue.BAD_PARAMS
-    except DatabaseException.UNIQUE_VIOLATION as e:
+    except DatabaseException.NOT_NULL_VIOLATION:
+        connection.close()
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.UNIQUE_VIOLATION:
         connection.close()
         return ReturnValue.ALREADY_EXISTS
-    except DatabaseException.ConnectionInvalid as e:
+    except DatabaseException.ConnectionInvalid:
         return ReturnValue.ERROR
     connection.close()
     return ReturnValue.OK
@@ -305,22 +303,19 @@ def update_dish_active_status(dish_id: int, is_active: bool) -> ReturnValue:
     try:
         connection = Connector.DBConnector()
         query = sql.SQL("""
-                               update dish 
-                               set is_active= {active_}
-                               where dish_id = {dish_};
-                               """).format(active_=sql.Literal(is_active),
-                                           dish_=sql.Literal(dish_id))
+            update dish set is_active= {active_} where dish_id = {dish_};
+        """).format(active_=sql.Literal(is_active),
+                    dish_=sql.Literal(dish_id))
 
         rows_affected, _ = connection.execute(query)
+        connection.close()
         if rows_affected == 0:
-            connection.close()
             return ReturnValue.NOT_EXISTS
-    except DatabaseException.CHECK_VIOLATION as e:
+    except DatabaseException.CHECK_VIOLATION:
         connection.close()
         return ReturnValue.BAD_PARAMS
-    except DatabaseException.ConnectionInvalid as e:
+    except DatabaseException.ConnectionInvalid:
         return ReturnValue.ERROR
-    connection.close()
     return ReturnValue.OK
 
 
@@ -407,11 +402,11 @@ def order_does_not_contain_dish(order_id: int, dish_id: int) -> ReturnValue:
                         """).format(order_=sql.Literal(order_id),
                                     dishid_=sql.Literal(dish_id))
         row_effected, _ = connection.execute(query)
+        connection.close()
         if row_effected == 0:
             return ReturnValue.NOT_EXISTS
     except DatabaseException.ConnectionInvalid:
         return ReturnValue.ERROR
-    connection.close()
     return ReturnValue.OK
 
 
@@ -444,6 +439,7 @@ def customer_likes_dish(cust_id: int, dish_id: int) -> ReturnValue:
                         """).format(cust_id=sql.Literal(cust_id),
                                     dish_id_=sql.Literal(dish_id))
         connection.execute(query)
+        connection.close()
     except DatabaseException.UNIQUE_VIOLATION:
         connection.close()
         return ReturnValue.ALREADY_EXISTS
@@ -554,14 +550,15 @@ def is_most_liked_dish_equal_to_most_purchased() -> bool:
                 from (select dish_id,count (*) 
                       from likes 
                       group by dish_id 
-                      order by count (*) desc ,dish_id limit 1 ) dish_like, (select dish_id, sum(amount) 
-                                                                             from dishes_in_order 
-                                                                             group by dish_id 
-                                                                             order by sum(amount) desc ,dish_id limit 1 ) dish_purch;
+                      order by count (*) desc ,dish_id limit 1 ) dish_like,
+                      (select dish_id, sum(amount) 
+                       from dishes_in_order 
+                       group by dish_id 
+                       order by sum(amount) desc ,dish_id limit 1 ) dish_purch;
                     """)
         _, result = connection.execute(query)
         connection.close()
-        return result["bool_dish"][0]
+        return result["bool_dish"][0] if result.size() > 0 else False
     except DatabaseException.ConnectionInvalid:
         return False
 
@@ -572,8 +569,33 @@ def is_most_liked_dish_equal_to_most_purchased() -> bool:
 
 
 def get_customers_ordered_top_5_dishes() -> List[int]:
-    # TODO: implement
-    pass
+    connection = Connector.DBConnector()
+    query = sql.SQL("""
+        select distinct cust_id
+        from customer_orders co 
+        join (
+            select count(*), order_id
+            from dishes_in_order dio
+            where dish_id in
+            (
+                select dish_id from (
+                select d.dish_id, count(l.dish_id) 
+                from dish d
+                left join likes l on l.dish_id = d.dish_id
+                group by d.dish_id
+                order by count(l.dish_id) desc, d.dish_id limit 5
+                )
+            )
+            group by order_id
+            having count(*) = 5
+        ) orders
+        on orders.order_id = co.order_id
+        order by cust_id
+    """)
+    _, result = connection.execute(query)
+    connection.close()
+
+    return result['cust_id']
 
 
 def get_non_worth_price_increase() -> List[int]:
@@ -587,9 +609,27 @@ def get_total_profit_per_month(year: int) -> List[Tuple[int, float]]:
 
 
 def get_potential_dish_recommendations(cust_id: int) -> List[int]:
-    # TODO: implement
+    connection = Connector.DBConnector()
+    query = sql.SQL("""
+        select distinct l.dish_id dish_recommendations
+        from likes l
+        where l.cust_id in (
+            select l2.cust_id
+            from likes l1
+            join likes l2 on l1.dish_id = l2.dish_id
+            where l1.cust_id = {cust_id}
+            and l1.cust_id <> l2.cust_id
+            group by l2.cust_id
+            having count(*) > 2
+        )
+        and not exists (
+            select 1
+            from likes l3
+            where l3.dish_id = l.dish_id
+            and l3.cust_id = {cust_id}
+        )
+        order by l.dish_id
+    """).format(cust_id=sql.Literal(cust_id))
+    _, result = connection.execute(query)
+    return result['dish_recommendations']
     pass
-
-
-def has_field_as_null(instance):
-    return any(value is None for value in vars(instance).values())

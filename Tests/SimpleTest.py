@@ -624,29 +624,127 @@ class Test(AbstractTest):
         assertOrdersEqual(self.assertEqual, anonymous_order_expensive1, Solution.get_most_expensive_anonymous_order())
 
     def test_delete_order_with_dishes_and_customer_who_likes(self) -> None:
-        customer = createCustomer()
-        order = createOrder()
-        dish = createDish()
-        self.assertEqual(ReturnValue.OK, Solution.add_customer(customer))
-        self.assertEqual(ReturnValue.OK, Solution.add_dish(dish))
-        self.assertEqual(ReturnValue.OK, Solution.add_order(order))
-        self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order.get_order_id(), dish.get_dish_id(), 1))
+        customer, dish, order = self.createEntitiesAndLinkOrderToDish()
         self.assertEqual(ReturnValue.OK, Solution.customer_placed_order(customer.get_cust_id(), order.get_order_id()))
         self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer.get_cust_id(), dish.get_dish_id()))
 
         self.assertEqual(ReturnValue.OK, Solution.delete_order(order.get_order_id()))
         self.assertEqual(ReturnValue.OK, Solution.delete_customer(customer.get_cust_id()))
 
-    def test_is_most_liked_dish_equal_to_most_purchased(self):
-        customer = createCustomer()
-        order = createOrder()
-        dish = createDish()
+    def test_basic_is_most_liked_dish_equal_to_most_purchased(self) -> None:
+        self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased())
+
+        customer, dish, _ = self.createEntitiesAndLinkOrderToDish()
+        self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased())
+
+        self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer.get_cust_id(), dish.get_dish_id()))
+        self.assertEqual(True, Solution.is_most_liked_dish_equal_to_most_purchased())
+
+    def test_few_most_liked_most_purchased(self) -> None:
+        customer1, dish1, order1 = self.createEntitiesAndLinkOrderToDish()
+        customer2, dish2, order2 = self.createEntitiesAndLinkOrderToDish(2)
+        customer3, dish3, order3 = self.createEntitiesAndLinkOrderToDish(3)
+
+        self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased())
+
+        customers = [customer1, customer2, customer3]
+        dishes = [dish1, dish2, dish3]
+        for customer in customers:
+            for dish in dishes:
+                self.assertEqual(
+                    ReturnValue.OK, Solution.customer_likes_dish(customer.get_cust_id(), dish.get_dish_id())
+                )
+
+        self.assertEqual(True, Solution.is_most_liked_dish_equal_to_most_purchased())
+
+        self.assertEqual(ReturnValue.OK, Solution.customer_dislike_dish(customer1.get_cust_id(), dish1.get_dish_id()))
+        self.assertEqual(False, Solution.is_most_liked_dish_equal_to_most_purchased())
+
+        self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order3.get_order_id(), dish2.get_dish_id(), 324))
+        self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order2.get_order_id(), dish3.get_dish_id(), 300))
+        self.assertEqual(True, Solution.is_most_liked_dish_equal_to_most_purchased())
+
+    def createEntitiesAndLinkOrderToDish(self, entity_id=1):
+        customer = createCustomer(cust_id=entity_id)
+        order = createOrder(order_id=entity_id)
+        dish = createDish(dish_id=entity_id)
         self.assertEqual(ReturnValue.OK, Solution.add_customer(customer))
         self.assertEqual(ReturnValue.OK, Solution.add_dish(dish))
         self.assertEqual(ReturnValue.OK, Solution.add_order(order))
         self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order.get_order_id(), dish.get_dish_id(), 1))
-        self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer.get_cust_id(), dish.get_dish_id()))
-        self.assertEqual(True, Solution.is_most_liked_dish_equal_to_most_purchased())
+        return customer, dish, order
+
+    def test_get_customers_ordered_top_5_dishes(self) -> None:
+        # create 3 customers, 3 corresponding orders and 6 dishes
+        customer1 = createCustomer()
+        customer2 = createCustomer(cust_id=2)
+        customer3 = createCustomer(cust_id=3)
+        dish1 = createDish()
+        dish2 = createDish(dish_id=2)
+        dish3 = createDish(dish_id=3)
+        dish4 = createDish(dish_id=4)
+        dish5 = createDish(dish_id=5)
+        dish6 = createDish(dish_id=6)
+        order1 = createOrder()
+        order2 = createOrder(order_id=2)
+        order3 = createOrder(order_id=3)
+        customers = [customer1, customer2, customer3]
+        dishes = [dish1, dish2, dish3, dish4, dish5, dish6]
+        orders = [order1, order2, order3]
+
+        for customer in customers:
+            self.assertEqual(ReturnValue.OK, Solution.add_customer(customer))
+        for dish in dishes:
+            self.assertEqual(ReturnValue.OK, Solution.add_dish(dish))
+        for order in orders:
+            self.assertEqual(ReturnValue.OK, Solution.add_order(order))
+        self.assertEqual(ReturnValue.OK, Solution.customer_placed_order(customer1.get_cust_id(), order1.get_order_id()))
+        self.assertEqual(ReturnValue.OK, Solution.customer_placed_order(customer2.get_cust_id(), order2.get_order_id()))
+        self.assertEqual(ReturnValue.OK, Solution.customer_placed_order(customer3.get_cust_id(), order3.get_order_id()))
+
+        # currently no customer ordered a dish, so the list is empty
+        self.assertEqual([], Solution.get_customers_ordered_top_5_dishes())
+
+        # all customers like the first five dishes, and customers 1,3 order them, so they are returned
+        for dish in dishes:
+            self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer1.get_cust_id(), dish.get_dish_id()))
+        first_five_dishes = [dish1, dish2, dish3, dish4, dish5]
+        for dish in first_five_dishes:
+            self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer2.get_cust_id(), dish.get_dish_id()))
+            self.assertEqual(ReturnValue.OK, Solution.customer_likes_dish(customer3.get_cust_id(), dish.get_dish_id()))
+            self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order1.get_order_id(), dish.get_dish_id(), 1))
+            self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order3.get_order_id(), dish.get_dish_id(), 1))
+
+        self.assertEqual(
+            [customer1.get_cust_id(), customer3.get_cust_id()], Solution.get_customers_ordered_top_5_dishes()
+        )
+
+        # customer 1 removes all dishes from his order so only customer 3 is returned
+        for dish in first_five_dishes:
+            self.assertEqual(
+                ReturnValue.OK, Solution.order_does_not_contain_dish(order1.get_order_id(), dish.get_dish_id())
+            )
+
+        self.assertEqual(
+            [customer3.get_cust_id()], Solution.get_customers_ordered_top_5_dishes()
+        )
+
+        # customer 3 does not order one of the five dishes so an empty list is returned
+        self.assertEqual(
+            ReturnValue.OK, Solution.order_does_not_contain_dish(order3.get_order_id(), dish5.get_dish_id())
+        )
+        self.assertEqual([], Solution.get_customers_ordered_top_5_dishes())
+
+        # all customers order all dishes
+        self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order3.get_order_id(), dish5.get_dish_id(), 1))
+        for dish in first_five_dishes:
+            self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order1.get_order_id(), dish.get_dish_id(), 1))
+            self.assertEqual(ReturnValue.OK, Solution.order_contains_dish(order2.get_order_id(), dish.get_dish_id(), 1))
+
+        self.assertEqual(
+            [customer1.get_cust_id(), customer2.get_cust_id(), customer3.get_cust_id()],
+            Solution.get_customers_ordered_top_5_dishes()
+        )
 
 
 # *** DO NOT RUN EACH TEST MANUALLY ***
