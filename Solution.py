@@ -614,6 +614,7 @@ def get_non_worth_price_increase() -> List[int]:
     on former_avg.dish_id = d.dish_id and former_avg.dish_price <> d.price
     where d.is_active = true
     and curr_avg.avg_price < former_avg.avg_price
+    order by d.dish_id
     """)
     _, result = connection.execute(query)
     return result['dish_id']
