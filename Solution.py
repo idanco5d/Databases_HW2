@@ -599,7 +599,24 @@ def get_customers_ordered_top_5_dishes() -> List[int]:
 
 
 def get_non_worth_price_increase() -> List[int]:
-    # TODO: implement
+    connection = Connector.DBConnector()
+    query = sql.SQL("""
+    with avg_dish_price as (
+    select avg(amount * dish_price) avg_price, dish_price, dish_id
+    from dishes_in_order
+    group by dish_price, dish_id
+    )
+    select distinct d.dish_id
+    from dish d
+    join avg_dish_price curr_avg 
+    on curr_avg.dish_id = d.dish_id and curr_avg.dish_price = d.price
+    join avg_dish_price former_avg
+    on former_avg.dish_id = d.dish_id and former_avg.dish_price <> d.price
+    where d.is_active = true
+    and curr_avg.avg_price < former_avg.avg_price
+    """)
+    _, result = connection.execute(query)
+    return result['dish_id']
     pass
 
 
