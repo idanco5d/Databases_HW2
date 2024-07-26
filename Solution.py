@@ -573,96 +573,108 @@ def is_most_liked_dish_equal_to_most_purchased() -> bool:
 
 
 def get_customers_ordered_top_5_dishes() -> List[int]:
-    connection = Connector.DBConnector()
-    query = sql.SQL("""
-        select distinct cust_id
-        from customer_orders co 
-        join (
-            select count(*), order_id
-            from dishes_in_order dio
-            where dish_id in
-            (
-                select dish_id from (
-                select d.dish_id, count(l.dish_id) 
-                from dish d
-                left join likes l on l.dish_id = d.dish_id
-                group by d.dish_id
-                order by count(l.dish_id) desc, d.dish_id limit 5
+    try:
+        connection = Connector.DBConnector()
+        query = sql.SQL("""
+            select distinct cust_id
+            from customer_orders co 
+            join (
+                select count(*), order_id
+                from dishes_in_order dio
+                where dish_id in
+                (
+                    select dish_id from (
+                    select d.dish_id, count(l.dish_id) 
+                    from dish d
+                    left join likes l on l.dish_id = d.dish_id
+                    group by d.dish_id
+                    order by count(l.dish_id) desc, d.dish_id limit 5
+                    )
                 )
-            )
-            group by order_id
-            having count(*) = 5
-        ) orders
-        on orders.order_id = co.order_id
-        order by cust_id
-    """)
-    _, result = connection.execute(query)
-    connection.close()
-    return result['cust_id']
+                group by order_id
+                having count(*) = 5
+            ) orders
+            on orders.order_id = co.order_id
+            order by cust_id
+        """)
+        _, result = connection.execute(query)
+        connection.close()
+        return result['cust_id']
+    except DatabaseException.ConnectionInvalid:
+        return []
 
 
 def get_non_worth_price_increase() -> List[int]:
-    connection = Connector.DBConnector()
-    query = sql.SQL("""
-    with avg_dish_price as (
-    select avg(dish_profit) avg_profit, dish_price, dish_id
-    from dish_profit_in_order
-    group by dish_price, dish_id
-    )
-    select distinct d.dish_id
-    from dish d
-    join avg_dish_price curr_avg 
-    on curr_avg.dish_id = d.dish_id and curr_avg.dish_price = d.price
-    join avg_dish_price former_avg
-    on former_avg.dish_id = d.dish_id and former_avg.dish_price <> d.price
-    where d.is_active = true
-    and curr_avg.avg_profit < former_avg.avg_profit
-    order by d.dish_id
-    """)
-    _, result = connection.execute(query)
-    connection.close()
-    return result['dish_id']
+    try:
+        connection = Connector.DBConnector()
+        query = sql.SQL("""
+        with avg_dish_price as (
+        select avg(dish_profit) avg_profit, dish_price, dish_id
+        from dish_profit_in_order
+        group by dish_price, dish_id
+        )
+        select distinct d.dish_id
+        from dish d
+        join avg_dish_price curr_avg 
+        on curr_avg.dish_id = d.dish_id and curr_avg.dish_price = d.price
+        join avg_dish_price former_avg
+        on former_avg.dish_id = d.dish_id and former_avg.dish_price <> d.price
+        where d.is_active = true
+        and curr_avg.avg_profit < former_avg.avg_profit
+        order by d.dish_id
+        """)
+        _, result = connection.execute(query)
+        connection.close()
+        return result['dish_id']
+    except DatabaseException.ConnectionInvalid:
+        return []
 
 
 def get_total_profit_per_month(year: int) -> List[Tuple[int, float]]:
-    connection = Connector.DBConnector()
-    query = sql.SQL("""
-    select months.month, coalesce(sum(dpio.dish_profit), 0) price
-    from (select generate_series(1, 12) "month") months
-    left join "order" o 
-    on extract(month from o.date) = months.month and extract(year from o.date) = {input_year}
-    left join dish_profit_in_order dpio 
-    on dpio.order_id = o.order_id
-    group by months.month
-    order by months.month desc
-    """).format(input_year=sql.Literal(year))
-    _, result = connection.execute(query)
-    connection.close()
-    return [(int(row['month']), float(row['price'])) for row in result]
+    try:
+        connection = Connector.DBConnector()
+        query = sql.SQL("""
+        select months.month, coalesce(sum(dpio.dish_profit), 0) price
+        from (select generate_series(1, 12) "month") months
+        left join "order" o 
+        on extract(month from o.date) = months.month and extract(year from o.date) = {input_year}
+        left join dish_profit_in_order dpio 
+        on dpio.order_id = o.order_id
+        group by months.month
+        order by months.month desc
+        """).format(input_year=sql.Literal(year))
+        _, result = connection.execute(query)
+        connection.close()
+        return [(int(row['month']), float(row['price'])) for row in result]
+    except DatabaseException.ConnectionInvalid:
+        return []
 
 
 def get_potential_dish_recommendations(cust_id: int) -> List[int]:
-    connection = Connector.DBConnector()
-    query = sql.SQL("""
-        select distinct l.dish_id dish_recommendations
-        from likes l
-        where l.cust_id in (
-            select l2.cust_id
-            from likes l1
-            join likes l2 on l1.dish_id = l2.dish_id
-            where l1.cust_id = {cust_id}
-            and l1.cust_id <> l2.cust_id
-            group by l2.cust_id
-            having count(*) > 2
-        )
-        and not exists (
-            select 1
-            from likes l3
-            where l3.dish_id = l.dish_id
-            and l3.cust_id = {cust_id}
-        )
-        order by l.dish_id
-    """).format(cust_id=sql.Literal(cust_id))
-    _, result = connection.execute(query)
-    connection.close()
-    return result['dish_recommendations']
+    try:
+        connection = Connector.DBConnector()
+        query = sql.SQL("""
+            select distinct l.dish_id dish_recommendations
+            from likes l
+            where l.cust_id in (
+                select l2.cust_id
+                from likes l1
+                join likes l2 on l1.dish_id = l2.dish_id
+                where l1.cust_id = {cust_id}
+                and l1.cust_id <> l2.cust_id
+                group by l2.cust_id
+                having count(*) > 2
+            )
+            and not exists (
+                select 1
+                from likes l3
+                where l3.dish_id = l.dish_id
+                and l3.cust_id = {cust_id}
+            )
+            order by l.dish_id
+        """).format(cust_id=sql.Literal(cust_id))
+        _, result = connection.execute(query)
+        connection.close()
+        return result['dish_recommendations']
+    except DatabaseException.ConnectionInvalid:
+        return []
