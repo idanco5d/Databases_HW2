@@ -283,6 +283,8 @@ class TestYummy(unittest.TestCase):
         self.assertEqual(result, ReturnValue.OK)
 
     def test_order_contains_dish_invalid_params(self):
+        add_order(Order(1, datetime(2023, 5, 6, 14, 30, 0)))
+        add_dish(Dish(1, "Pizza", 10.0, True))
         result = order_contains_dish(1, 1, -1)
         self.assertEqual(result, ReturnValue.BAD_PARAMS)
 
