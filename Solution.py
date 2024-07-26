@@ -190,9 +190,6 @@ def add_order(order: Order) -> ReturnValue:
     except DatabaseException.UNIQUE_VIOLATION:
         connection.close()
         return ReturnValue.ALREADY_EXISTS
-    except DatabaseException.FOREIGN_KEY_VIOLATION:
-        connection.close()
-        return ReturnValue.BAD_PARAMS
     except DatabaseException.ConnectionInvalid:
         return ReturnValue.ERROR
     connection.close()
